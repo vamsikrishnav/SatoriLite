@@ -6,6 +6,8 @@ import { initRenderer } from './renderer.js';
 import { initViewMode } from './viewmode.js';
 import { initSearch } from './search.js';
 import { initThemeChooser } from './themes.js';
+import { initStatusBar } from './status-bar.js';
+import { initResize } from './resize.js';
 
 // Module state
 let vaultTree = null;
@@ -181,6 +183,8 @@ async function openVault(name, dirHandle) {
     initViewMode();
     await initEditor();
     initSearch();
+    initStatusBar();
+    initResize();
   } catch (err) {
     console.error('Failed to open vault:', err);
   }

@@ -1447,3 +1447,51 @@ code, pre, .mono {
   color: var(--text-normal);
   flex: 1;
 }
+
+/* ========== Status Bar ========== */
+
+.status-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 12px;
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border);
+  font-size: 11px;
+  color: var(--text-faint);
+  flex-shrink: 0;
+  height: 24px;
+  font-family: 'Liga SFMono Nerd Font', 'SF Mono', 'Fira Code', monospace;
+  grid-column: 1 / -1;
+}
+
+.status-bar-left,
+.status-bar-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.status-item {
+  white-space: nowrap;
+}
+
+.status-clickable {
+  background: none;
+  border: none;
+  color: var(--text-faint);
+  font-size: 11px;
+  font-family: inherit;
+  cursor: pointer;
+  padding: 0;
+}
+
+.status-clickable:hover {
+  color: var(--text-normal);
+}
+
+/* ========== Sidebar Collapsed ========== */
+
+.app-layout.sidebar-collapsed .sidebar-left {
+  display: none;
+}
