@@ -192,6 +192,10 @@ export async function openFile(path) {
     return;
   }
 
+  // Clear pending timers from previous file
+  if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; }
+  if (previewTimer) { clearTimeout(previewTimer); previewTimer = null; }
+
   try {
     const fileHandle = await getFileHandle(path);
     const content = await readFile(fileHandle);
