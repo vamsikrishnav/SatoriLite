@@ -5,6 +5,7 @@ import { initEditor } from './editor.js';
 import { initRenderer } from './renderer.js';
 import { initViewMode } from './viewmode.js';
 import { initSearch } from './search.js';
+import { initThemeChooser } from './themes.js';
 
 // Module state
 let vaultTree = null;
@@ -186,5 +187,6 @@ async function openVault(name, dirHandle) {
 }
 
 // Initialize on page load
+initThemeChooser();
 initTree();
 init();

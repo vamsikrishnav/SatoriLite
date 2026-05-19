@@ -1380,3 +1380,70 @@ code, pre, .mono {
   color: var(--text-muted);
   font-size: 13px;
 }
+
+/* ========== Theme Chooser Panel ========== */
+
+.theme-panel {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 320px;
+  max-height: 70vh;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow), 0 8px 32px rgba(0, 0, 0, 0.4);
+  z-index: 2000;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.theme-panel-header {
+  padding: 12px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.theme-panel-list {
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.theme-panel-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background var(--transition);
+}
+
+.theme-panel-item:hover {
+  background: var(--bg-surface0);
+}
+
+.theme-panel-item.active {
+  background: var(--bg-surface0);
+  outline: 1px solid var(--accent);
+}
+
+.theme-swatch {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid;
+  flex-shrink: 0;
+}
+
+.theme-panel-name {
+  font-size: 13px;
+  color: var(--text-normal);
+  flex: 1;
+}
