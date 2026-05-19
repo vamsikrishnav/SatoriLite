@@ -1628,3 +1628,160 @@ code, pre, .mono {
   font-size: 14px;
   text-align: center;
 }
+
+/* ========== Live Preview Widgets ========== */
+
+.cm-bullet {
+  color: var(--accent);
+  font-weight: bold;
+  margin-right: 4px;
+}
+
+.cm-checkbox {
+  margin-right: 6px;
+  cursor: pointer;
+  accent-color: var(--accent);
+}
+
+.cm-table {
+  border-collapse: collapse;
+  font-size: inherit;
+  line-height: inherit;
+}
+
+.cm-table th,
+.cm-table td {
+  border: 1px solid var(--border);
+  padding: 6px 16px;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.cm-table th {
+  font-weight: bold;
+  background: color-mix(in srgb, var(--bg-surface0) 30%, transparent);
+}
+
+.cm-table td {
+  background: color-mix(in srgb, var(--bg-primary) 50%, transparent);
+}
+
+.cm-table .cm-cell-editing {
+  outline: 1px solid var(--accent);
+  background: var(--bg-primary);
+}
+
+.cm-image {
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--radius-sm);
+  margin: 4px 0;
+  display: block;
+  background: var(--bg-surface0);
+  padding: 8px;
+}
+
+.cm-mermaid {
+  padding: 12px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow-x: auto;
+}
+
+.cm-mermaid svg {
+  max-width: 100%;
+  height: auto;
+}
+
+.cm-code-lang-tag {
+  font-size: 10px;
+  color: var(--text-faint);
+  opacity: 0.7;
+  margin-left: 4px;
+}
+
+.cm-blockquote-line {
+  border-left: 3px solid var(--accent);
+  padding-left: 12px;
+  color: var(--text-muted);
+}
+
+.cm-hr-line {
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 4px;
+}
+
+.cm-link-text {
+  color: var(--syn-link);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* ========== Link Preview Popup ========== */
+
+.link-preview-popup {
+  position: fixed;
+  z-index: 100;
+  width: 420px;
+  max-height: 320px;
+  overflow-y: auto;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 16px 20px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  font-family: 'Literata', Georgia, serif;
+  font-size: 12.5px;
+  line-height: 1.3;
+  color: var(--text-normal);
+  margin-top: 8px;
+  pointer-events: auto;
+}
+
+.link-preview-popup .preview-arrow {
+  position: absolute;
+  top: -6px;
+  width: 12px;
+  height: 12px;
+  margin-left: -6px;
+  background: var(--bg-secondary);
+  border-left: 1px solid var(--border);
+  border-top: 1px solid var(--border);
+  transform: rotate(45deg);
+}
+
+.link-preview-popup h1 { color: var(--syn-h1); font-size: 1.3em; margin: 0.2em 0; font-weight: bold; }
+.link-preview-popup h2 { color: var(--syn-h2); font-size: 1.15em; margin: 0.2em 0; font-weight: bold; }
+.link-preview-popup h3 { color: var(--syn-h3); font-size: 1em; margin: 0.2em 0; font-weight: bold; }
+.link-preview-popup p { margin: 0.2em 0; }
+.link-preview-popup a { color: var(--accent); text-decoration: underline; }
+.link-preview-popup strong { color: var(--syn-strong); }
+.link-preview-popup em { color: var(--syn-emphasis); }
+.link-preview-popup code {
+  font-size: 0.9em;
+  background: var(--bg-surface0);
+  padding: 1px 4px;
+  border-radius: 3px;
+  color: var(--syn-string);
+}
+.link-preview-popup pre {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 6px 10px;
+  margin: 0.2em 0;
+}
+.link-preview-popup pre code {
+  font-size: 10px;
+  line-height: 1.3;
+  color: var(--text-normal);
+  background: none;
+  padding: 0;
+}
+.link-preview-popup ul,
+.link-preview-popup ol {
+  padding-left: 1.2em;
+  margin: 0.2em 0;
+}
+.link-preview-popup li { margin: 0.1em 0; }

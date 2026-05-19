@@ -12,6 +12,8 @@ import { initTabs } from './tabs.js';
 import { initFileOps } from './file-ops.js';
 import { initLinkComplete } from './link-complete.js';
 import { initCommandPalette } from './command-palette.js';
+import { initSyncScroll } from './sync-scroll.js';
+import { initLinkPreview } from './link-preview.js';
 
 // Module state
 let vaultTree = null;
@@ -192,6 +194,8 @@ async function openVault(name, dirHandle) {
     initFileOps();
     initStatusBar();
     initResize();
+    initSyncScroll();
+    initLinkPreview();
   } catch (err) {
     console.error('Failed to open vault:', err);
   }

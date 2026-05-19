@@ -1,4 +1,4 @@
-const CACHE_NAME = 'satorilite-v3';
+const CACHE_NAME = 'satorilite-v4';
 const APP_SHELL_FILES = [
   '/',
   '/index.html',
@@ -19,6 +19,9 @@ const APP_SHELL_FILES = [
   '/js/file-ops.js',
   '/js/link-complete.js',
   '/js/command-palette.js',
+  '/js/sync-scroll.js',
+  '/js/link-preview.js',
+  '/js/live-preview.js',
   '/lib/codemirror-bundle.js',
   '/lib/marked.js',
   '/lib/minisearch.js',

@@ -1,6 +1,7 @@
 // CodeMirror 6 editor module for SatoriLite
 import { readFile, writeFile, getFileHandle } from './fs.js';
 import { setActiveFile } from './tree.js';
+import { createLivePreview } from './live-preview.js';
 
 // Module state
 let editorView = null;
@@ -43,7 +44,8 @@ export async function initEditor() {
     EditorState, EditorView, basicSetup, markdown,
     LanguageDescription, javascript, python, json, yaml,
     html, css, cpp, go, rust, java, sql, php, xml,
-    syntaxHighlighting, HighlightStyle, tags, keymap
+    syntaxHighlighting, HighlightStyle, tags, keymap,
+    StateField, Decoration, WidgetType
   } = await import('codemirror-bundle');
 
   // Create Catppuccin highlight style
@@ -128,6 +130,9 @@ export async function initEditor() {
     return;
   }
 
+  // Live preview StateField
+  const livePreviewField = createLivePreview(StateField, Decoration, WidgetType, EditorView);
+
   const state = EditorState.create({
     doc: '',
     extensions: [
@@ -150,6 +155,7 @@ export async function initEditor() {
       ]}),
       satoriTheme,
       syntaxHighlighting(catppuccinHighlight),
+      livePreviewField,
       saveKeymap,
       updateListener,
     ]
@@ -219,6 +225,6 @@ export async function openFile(path) {
       detail: { path, content }
     }));
   } catch (err) {
-    console.error('Failed to open file:', err);
+    console.error('Failed to open file:', path, err);
   }
 }
