@@ -1666,11 +1666,9 @@ code, pre, .mono {
   background: color-mix(in srgb, var(--bg-primary) 50%, transparent);
 }
 
-.cm-table .cm-token-expanded {
-  color: var(--text-faint);
-  font-style: normal;
-  font-weight: normal;
-  text-decoration: none;
+.cm-table .cm-cell-editing {
+  outline: 1px solid var(--accent);
+  background: var(--bg-primary);
 }
 
 .cm-table a {

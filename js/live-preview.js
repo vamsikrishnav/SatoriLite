@@ -53,11 +53,10 @@ export function createLivePreview(StateField, Decoration, WidgetType, EditorView
   }
 
   class TableWidget extends WidgetType {
-    constructor(rawLines, lineOffsets, fromPos) {
+    constructor(rawLines, lineOffsets) {
       super();
       this.rawLines = rawLines;
       this.lineOffsets = lineOffsets;
-      this.fromPos = fromPos;
     }
 
     parseCells(line) {
@@ -184,7 +183,138 @@ export function createLivePreview(StateField, Decoration, WidgetType, EditorView
       }
       table.appendChild(tbody);
 
-      const fromPos = this.fromPos;
+      const self = this;
+      let activeCell = null;
+
+      function deactivateCell(cellEl) {
+        if (!cellEl || cellEl !== activeCell) return;
+        const newText = cellEl.textContent || '';
+        const rowIdx = parseInt(cellEl.dataset.row || '0');
+        const colIdx = parseInt(cellEl.dataset.col || '0');
+        const info = allCells[rowIdx] ? allCells[rowIdx][colIdx] : null;
+        cellEl.removeAttribute('contenteditable');
+        cellEl.classList.remove('cm-cell-editing');
+        if (info) renderCellContent(cellEl, info.text);
+        activeCell = null;
+        if (!info || newText === info.text) return;
+        const lineOffset = self.lineOffsets[rowIdx];
+        if (lineOffset === undefined) return;
+        const from = lineOffset + info.start;
+        const to = lineOffset + info.end;
+        view.dispatch({ changes: { from, to, insert: ' ' + newText + ' ' } });
+      }
+
+      function activateCell(cellEl, clickX) {
+        if (cellEl === activeCell) return;
+        if (activeCell) deactivateCell(activeCell);
+        const rowIdx = parseInt(cellEl.dataset.row || '0');
+        const colIdx = parseInt(cellEl.dataset.col || '0');
+        const info = allCells[rowIdx] ? allCells[rowIdx][colIdx] : null;
+        if (!info) return;
+
+        cellEl.textContent = info.text;
+        cellEl.contentEditable = 'true';
+        cellEl.classList.add('cm-cell-editing');
+        activeCell = cellEl;
+        cellEl.focus();
+
+        const tNode = cellEl.firstChild;
+        if (tNode && tNode.nodeType === Node.TEXT_NODE && clickX !== undefined) {
+          const range = document.createRange();
+          const text = tNode.textContent || '';
+          let bestOffset = text.length;
+          for (let c = 0; c <= text.length; c++) {
+            range.setStart(tNode, c);
+            range.collapse(true);
+            const rect = range.getBoundingClientRect();
+            if (rect.left >= clickX) { bestOffset = c; break; }
+          }
+          range.setStart(tNode, bestOffset);
+          range.collapse(true);
+          const sel = window.getSelection();
+          if (sel) { sel.removeAllRanges(); sel.addRange(range); }
+        }
+
+        const onBlur = () => {
+          cellEl.removeEventListener('blur', onBlur);
+          cellEl.removeEventListener('keydown', onKey);
+          deactivateCell(cellEl);
+        };
+
+        const onKey = (ke) => {
+          if (ke.key === 'Escape') {
+            ke.preventDefault();
+            const info2 = allCells[rowIdx] ? allCells[rowIdx][colIdx] : null;
+            cellEl.removeAttribute('contenteditable');
+            cellEl.classList.remove('cm-cell-editing');
+            cellEl.removeEventListener('blur', onBlur);
+            cellEl.removeEventListener('keydown', onKey);
+            if (info2) renderCellContent(cellEl, info2.text);
+            activeCell = null;
+            return;
+          }
+          if (ke.key === 'Enter') {
+            ke.preventDefault();
+            cellEl.removeEventListener('blur', onBlur);
+            cellEl.removeEventListener('keydown', onKey);
+            deactivateCell(cellEl);
+            return;
+          }
+          if (ke.key === 'Tab' || ke.key === 'ArrowRight' || ke.key === 'ArrowLeft' ||
+              ke.key === 'ArrowUp' || ke.key === 'ArrowDown') {
+            const sel = window.getSelection();
+            const curPos = sel ? sel.anchorOffset : 0;
+            const len = (cellEl.textContent || '').length;
+            let nextRow = rowIdx, nextCol = colIdx;
+
+            if (ke.key === 'Tab') {
+              ke.preventDefault();
+              cellEl.removeEventListener('blur', onBlur);
+              cellEl.removeEventListener('keydown', onKey);
+              deactivateCell(cellEl);
+              nextCol = ke.shiftKey ? colIdx - 1 : colIdx + 1;
+            } else if (ke.key === 'ArrowRight' && curPos >= len) {
+              ke.preventDefault();
+              cellEl.removeEventListener('blur', onBlur);
+              cellEl.removeEventListener('keydown', onKey);
+              deactivateCell(cellEl);
+              nextCol = colIdx + 1;
+            } else if (ke.key === 'ArrowLeft' && curPos === 0) {
+              ke.preventDefault();
+              cellEl.removeEventListener('blur', onBlur);
+              cellEl.removeEventListener('keydown', onKey);
+              deactivateCell(cellEl);
+              nextCol = colIdx - 1;
+            } else if (ke.key === 'ArrowDown') {
+              ke.preventDefault();
+              cellEl.removeEventListener('blur', onBlur);
+              cellEl.removeEventListener('keydown', onKey);
+              deactivateCell(cellEl);
+              nextRow = rowIdx + 1;
+              if (nextRow === 1) nextRow = 2;
+            } else if (ke.key === 'ArrowUp') {
+              ke.preventDefault();
+              cellEl.removeEventListener('blur', onBlur);
+              cellEl.removeEventListener('keydown', onKey);
+              deactivateCell(cellEl);
+              nextRow = rowIdx - 1;
+              if (nextRow === 1) nextRow = 0;
+            } else {
+              return;
+            }
+
+            const numCols = allCells[0] ? allCells[0].length : 1;
+            if (nextCol >= numCols) { nextCol = 0; nextRow++; if (nextRow === 1) nextRow = 2; }
+            if (nextCol < 0) { nextCol = numCols - 1; nextRow--; if (nextRow === 1) nextRow = 0; }
+
+            const target = table.querySelector('[data-row="' + nextRow + '"][data-col="' + nextCol + '"]');
+            if (target) activateCell(target, undefined);
+          }
+        };
+
+        cellEl.addEventListener('blur', onBlur);
+        cellEl.addEventListener('keydown', onKey);
+      }
 
       table.addEventListener('mousedown', (e) => {
         const target = e.target;
@@ -218,10 +348,12 @@ export function createLivePreview(StateField, Decoration, WidgetType, EditorView
           return;
         }
 
-        e.preventDefault();
-        e.stopPropagation();
-        view.dispatch({ selection: { anchor: fromPos } });
-        view.focus();
+        const cell = target.closest('th, td');
+        if (cell) {
+          e.preventDefault();
+          e.stopPropagation();
+          activateCell(cell, e.clientX);
+        }
       });
 
       return table;
@@ -323,19 +455,17 @@ export function createLivePreview(StateField, Decoration, WidgetType, EditorView
       const endLn = doc.line(t.end);
       for (let r = t.start; r <= t.end; r++) tableLineSet.add(r);
 
-      if (!cursorInRange(cursor, startLn.from, endLn.to)) {
-        const rawLines = [];
-        const lineOffsets = [];
-        for (let r = t.start; r <= t.end; r++) {
-          const ln = doc.line(r);
-          rawLines.push(ln.text);
-          lineOffsets.push(ln.from);
-        }
-        ranges.push(Decoration.replace({
-          widget: new TableWidget(rawLines, lineOffsets, startLn.from),
-          block: true,
-        }).range(startLn.from, endLn.to));
+      const rawLines = [];
+      const lineOffsets = [];
+      for (let r = t.start; r <= t.end; r++) {
+        const ln = doc.line(r);
+        rawLines.push(ln.text);
+        lineOffsets.push(ln.from);
       }
+      ranges.push(Decoration.replace({
+        widget: new TableWidget(rawLines, lineOffsets),
+        block: true,
+      }).range(startLn.from, endLn.to));
     }
 
     const mermaidLineSet = new Set();
