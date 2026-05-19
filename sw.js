@@ -1,10 +1,15 @@
-const CACHE_NAME = 'satorilite-v1';
+const CACHE_NAME = 'satorilite-v2';
 const APP_SHELL_FILES = [
   '/',
   '/index.html',
   '/css/satori.css',
   '/js/app.js',
   '/lib/codemirror-bundle.js',
+  '/lib/mermaid.esm.min.js',
+  '/lib/mermaid.min.js',
+  '/lib/katex/katex.min.js',
+  '/lib/katex/katex-core.min.js',
+  '/lib/katex/katex.min.css',
   '/manifest.json'
 ];
 
