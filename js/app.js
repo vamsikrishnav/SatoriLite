@@ -1,3 +1,178 @@
-import { pickDirectory, scanDirectory, readFile } from './fs.js';
-import { getRecentVaults, saveVault } from './vault-db.js';
-console.log('SatoriLite modules loaded');
+import { pickDirectory, scanDirectory, setRootHandle } from './fs.js';
+import { getRecentVaults, saveVault, removeVault } from './vault-db.js';
+
+// Module state
+let vaultTree = null;
+
+// Exports
+export function getVaultTree() {
+  return vaultTree;
+}
+
+// DOM elements
+let vaultChooserEl;
+let vaultListEl;
+let btnOpenFolderEl;
+let appLayoutEl;
+
+/**
+ * Initialize the app on page load
+ */
+function init() {
+  // Get DOM elements
+  vaultChooserEl = document.getElementById('vault-chooser');
+  vaultListEl = document.getElementById('vault-list');
+  btnOpenFolderEl = document.getElementById('btn-open-folder');
+  appLayoutEl = document.getElementById('app-layout');
+
+  if (!vaultChooserEl || !vaultListEl || !btnOpenFolderEl || !appLayoutEl) {
+    console.error('Required DOM elements not found');
+    return;
+  }
+
+  // Render recent vaults
+  renderRecentVaults();
+
+  // Wire "Open Folder" button
+  btnOpenFolderEl.addEventListener('click', handleOpenFolder);
+}
+
+/**
+ * Render the list of recent vaults from IndexedDB
+ */
+async function renderRecentVaults() {
+  try {
+    const vaults = await getRecentVaults();
+
+    // Clear the list
+    vaultListEl.textContent = '';
+
+    // Create vault items
+    vaults.forEach(vault => {
+      const vaultItem = createVaultItem(vault);
+      vaultListEl.appendChild(vaultItem);
+    });
+  } catch (err) {
+    console.error('Failed to render recent vaults:', err);
+  }
+}
+
+/**
+ * Create a vault item DOM element
+ * @param {Object} vault - Vault object with name and dirHandle
+ * @returns {HTMLElement}
+ */
+function createVaultItem(vault) {
+  // Container
+  const vaultItem = document.createElement('div');
+  vaultItem.className = 'vault-item';
+
+  // Info section (clickable)
+  const vaultItemInfo = document.createElement('div');
+  vaultItemInfo.className = 'vault-item-info';
+  vaultItemInfo.addEventListener('click', () => handleVaultClick(vault));
+
+  // Name
+  const vaultItemName = document.createElement('div');
+  vaultItemName.className = 'vault-item-name';
+  vaultItemName.textContent = vault.name;
+
+  vaultItemInfo.appendChild(vaultItemName);
+
+  // Delete button
+  const deleteBtn = document.createElement('button');
+  deleteBtn.className = 'vault-item-delete';
+  deleteBtn.textContent = '×';
+  deleteBtn.title = 'Remove from recents';
+  deleteBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    handleVaultDelete(vault.name);
+  });
+
+  vaultItem.appendChild(vaultItemInfo);
+  vaultItem.appendChild(deleteBtn);
+
+  return vaultItem;
+}
+
+/**
+ * Handle clicking on a vault item
+ */
+async function handleVaultClick(vault) {
+  try {
+    // Request permission on the stored directory handle
+    const permissionStatus = await vault.dirHandle.requestPermission({ mode: 'readwrite' });
+
+    if (permissionStatus === 'granted') {
+      await openVault(vault.name, vault.dirHandle);
+    } else {
+      console.warn('Permission denied for vault:', vault.name);
+    }
+  } catch (err) {
+    console.error('Failed to open vault:', err);
+  }
+}
+
+/**
+ * Handle deleting a vault from recent list
+ */
+async function handleVaultDelete(vaultName) {
+  try {
+    await removeVault(vaultName);
+    await renderRecentVaults();
+  } catch (err) {
+    console.error('Failed to delete vault:', err);
+  }
+}
+
+/**
+ * Handle "Open Folder" button click
+ */
+async function handleOpenFolder() {
+  try {
+    const dirHandle = await pickDirectory();
+    await openVault(dirHandle.name, dirHandle);
+  } catch (err) {
+    // User cancelled - silently ignore AbortError
+    if (err.name === 'AbortError') {
+      return;
+    }
+    console.error('Failed to pick directory:', err);
+  }
+}
+
+/**
+ * Open a vault: scan, save, and show the app
+ * @param {string} name - Vault name
+ * @param {FileSystemDirectoryHandle} dirHandle - Directory handle
+ */
+async function openVault(name, dirHandle) {
+  try {
+    // Set root handle in fs module
+    setRootHandle(dirHandle);
+
+    // Save to IndexedDB
+    await saveVault(name, dirHandle);
+
+    // Scan the directory
+    vaultTree = await scanDirectory(dirHandle);
+
+    // Hide vault chooser, show app layout
+    vaultChooserEl.classList.add('hidden');
+    appLayoutEl.classList.remove('hidden');
+
+    // Dispatch custom event
+    const event = new CustomEvent('satorilite:vault-open', {
+      detail: {
+        name,
+        tree: vaultTree
+      }
+    });
+    window.dispatchEvent(event);
+  } catch (err) {
+    console.error('Failed to open vault:', err);
+  }
+}
+
+// Initialize on page load
+init();
