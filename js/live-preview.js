@@ -1,4 +1,5 @@
 import { marked } from 'marked';
+import { getCurrentFilePath } from './editor.js';
 
 let mermaidLib = null;
 let mermaidSeq = 0;
@@ -52,10 +53,11 @@ export function createLivePreview(StateField, Decoration, WidgetType, EditorView
   }
 
   class TableWidget extends WidgetType {
-    constructor(rawLines, lineOffsets) {
+    constructor(rawLines, lineOffsets, fromPos) {
       super();
       this.rawLines = rawLines;
       this.lineOffsets = lineOffsets;
+      this.fromPos = fromPos;
     }
 
     parseCells(line) {
@@ -78,8 +80,80 @@ export function createLivePreview(StateField, Decoration, WidgetType, EditorView
 
       const allCells = this.rawLines.map(line => this.parseCells(line));
 
+      const inlineTokenRe = /(\[([^\]]+)\]\(([^)]+)\))|(\*\*([^*]+)\*\*)|(\*([^*]+)\*)|(`([^`]+)`)|(~~([^~]+)~~)/g;
+
+      function tokenize(text) {
+        const tokens = [];
+        let lastIdx = 0;
+        let m;
+        inlineTokenRe.lastIndex = 0;
+        while ((m = inlineTokenRe.exec(text)) !== null) {
+          if (m.index > lastIdx) {
+            tokens.push({ type: 'text', raw: text.slice(lastIdx, m.index), display: text.slice(lastIdx, m.index), start: lastIdx, end: m.index });
+          }
+          if (m[1]) {
+            tokens.push({ type: 'link', raw: m[1], display: m[2], href: m[3], start: m.index, end: m.index + m[1].length });
+          } else if (m[4]) {
+            tokens.push({ type: 'bold', raw: m[4], display: m[5], start: m.index, end: m.index + m[4].length });
+          } else if (m[6]) {
+            tokens.push({ type: 'italic', raw: m[6], display: m[7], start: m.index, end: m.index + m[6].length });
+          } else if (m[8]) {
+            tokens.push({ type: 'code', raw: m[8], display: m[9], start: m.index, end: m.index + m[8].length });
+          } else if (m[10]) {
+            tokens.push({ type: 'strike', raw: m[10], display: m[11], start: m.index, end: m.index + m[10].length });
+          }
+          lastIdx = m.index + m[0].length;
+        }
+        if (lastIdx < text.length) {
+          tokens.push({ type: 'text', raw: text.slice(lastIdx), display: text.slice(lastIdx), start: lastIdx, end: text.length });
+        }
+        return tokens;
+      }
+
       function renderCellContent(el, text) {
-        el.textContent = text;
+        el.innerHTML = '';
+        const tokens = tokenize(text || '');
+        for (const tok of tokens) {
+          if (tok.type === 'text') {
+            el.appendChild(document.createTextNode(tok.display));
+          } else if (tok.type === 'link') {
+            const a = document.createElement('a');
+            a.href = tok.href;
+            a.textContent = tok.display;
+            a.dataset.start = tok.start;
+            a.dataset.end = tok.end;
+            a.dataset.raw = tok.raw;
+            el.appendChild(a);
+          } else if (tok.type === 'bold') {
+            const b = document.createElement('strong');
+            b.textContent = tok.display;
+            b.dataset.start = tok.start;
+            b.dataset.end = tok.end;
+            b.dataset.raw = tok.raw;
+            el.appendChild(b);
+          } else if (tok.type === 'italic') {
+            const i = document.createElement('em');
+            i.textContent = tok.display;
+            i.dataset.start = tok.start;
+            i.dataset.end = tok.end;
+            i.dataset.raw = tok.raw;
+            el.appendChild(i);
+          } else if (tok.type === 'code') {
+            const c = document.createElement('code');
+            c.textContent = tok.display;
+            c.dataset.start = tok.start;
+            c.dataset.end = tok.end;
+            c.dataset.raw = tok.raw;
+            el.appendChild(c);
+          } else if (tok.type === 'strike') {
+            const s = document.createElement('s');
+            s.textContent = tok.display;
+            s.dataset.start = tok.start;
+            s.dataset.end = tok.end;
+            s.dataset.raw = tok.raw;
+            el.appendChild(s);
+          }
+        }
       }
 
       const thead = document.createElement('thead');
@@ -110,135 +184,44 @@ export function createLivePreview(StateField, Decoration, WidgetType, EditorView
       }
       table.appendChild(tbody);
 
-      const self = this;
-
-      function activateCell(cellEl, rIdx, cIdx, cursorPos) {
-        const info = allCells[rIdx]?.[cIdx];
-        if (!info) return;
-
-        table.querySelectorAll('.cm-cell-editing').forEach(el => {
-          el.classList.remove('cm-cell-editing');
-          el.removeAttribute('contenteditable');
-        });
-
-        cellEl.textContent = info.text;
-        cellEl.contentEditable = 'true';
-        cellEl.classList.add('cm-cell-editing');
-        cellEl.focus();
-
-        const tNode = cellEl.firstChild;
-        if (tNode && tNode.nodeType === Node.TEXT_NODE) {
-          const tLen = (tNode.textContent || '').length;
-          const pos = cursorPos !== undefined ? Math.min(cursorPos, tLen) : tLen;
-          const r = document.createRange();
-          r.setStart(tNode, pos);
-          r.collapse(true);
-          const s = window.getSelection();
-          if (s) { s.removeAllRanges(); s.addRange(r); }
-        }
-
-        const commitCell = () => {
-          const newText = cellEl.textContent || '';
-          cellEl.removeAttribute('contenteditable');
-          cellEl.classList.remove('cm-cell-editing');
-          cellEl.removeEventListener('blur', commitCell);
-          cellEl.removeEventListener('keydown', onCellKey);
-          renderCellContent(cellEl, newText || info.text);
-          if (newText === info.text) return;
-          const lineOffset = self.lineOffsets[rIdx];
-          if (lineOffset === undefined) return;
-          const from = lineOffset + info.start;
-          const to = lineOffset + info.end;
-          view.dispatch({ changes: { from, to, insert: ' ' + newText + ' ' } });
-        };
-
-        const onCellKey = (ke) => {
-          if (ke.key === 'Enter') { ke.preventDefault(); commitCell(); return; }
-          if (ke.key === 'Escape') {
-            ke.preventDefault();
-            cellEl.removeAttribute('contenteditable');
-            cellEl.classList.remove('cm-cell-editing');
-            cellEl.removeEventListener('blur', commitCell);
-            cellEl.removeEventListener('keydown', onCellKey);
-            renderCellContent(cellEl, info.text);
-            return;
-          }
-          if (ke.key === 'Tab' || ke.key === 'ArrowRight' || ke.key === 'ArrowLeft' ||
-              ke.key === 'ArrowUp' || ke.key === 'ArrowDown') {
-            const sel = window.getSelection();
-            const curPos = sel ? sel.anchorOffset : 0;
-            const len = (cellEl.textContent || '').length;
-            let nextRow = rIdx;
-            let nextCol = cIdx;
-
-            if (ke.key === 'Tab') {
-              ke.preventDefault(); commitCell();
-              nextCol = ke.shiftKey ? cIdx - 1 : cIdx + 1;
-            } else if (ke.key === 'ArrowRight' && curPos >= len) {
-              ke.preventDefault(); commitCell();
-              nextCol = cIdx + 1;
-            } else if (ke.key === 'ArrowLeft' && curPos === 0) {
-              ke.preventDefault(); commitCell();
-              nextCol = cIdx - 1;
-            } else if (ke.key === 'ArrowDown') {
-              ke.preventDefault(); commitCell();
-              nextRow = rIdx + 1;
-              if (nextRow === 1) nextRow = 2;
-            } else if (ke.key === 'ArrowUp') {
-              ke.preventDefault(); commitCell();
-              nextRow = rIdx - 1;
-              if (nextRow === 1) nextRow = 0;
-            } else {
-              return;
-            }
-
-            const numCols = allCells[0] ? allCells[0].length : 1;
-            if (nextCol >= numCols) { nextCol = 0; nextRow++; if (nextRow === 1) nextRow = 2; }
-            if (nextCol < 0) { nextCol = numCols - 1; nextRow--; if (nextRow === 1) nextRow = 0; }
-
-            const targetCell = table.querySelector('[data-row="' + nextRow + '"][data-col="' + nextCol + '"]');
-            if (targetCell) {
-              const cPos = (ke.key === 'ArrowLeft' || ke.key === 'ArrowUp') ? 9999 : 0;
-              activateCell(targetCell, nextRow, nextCol, cPos);
-            }
-          }
-        };
-
-        cellEl.addEventListener('blur', commitCell);
-        cellEl.addEventListener('keydown', onCellKey);
-      }
+      const fromPos = this.fromPos;
 
       table.addEventListener('mousedown', (e) => {
         const target = e.target;
-        const cell = target.closest('th, td');
-        if (!cell) return;
+
+        const link = target.closest('a');
+        if (link) {
+          e.preventDefault();
+          e.stopPropagation();
+          let href = link.getAttribute('href') || '';
+          if (href.startsWith('http://') || href.startsWith('https://')) {
+            window.open(href, '_blank', 'noopener');
+          } else {
+            if (!href.endsWith('.md')) href += '.md';
+            const current = getCurrentFilePath();
+            if (current && !href.startsWith('/')) {
+              const dir = current.substring(0, current.lastIndexOf('/'));
+              if (dir) href = dir + '/' + href;
+            }
+            try { href = decodeURIComponent(href); } catch {}
+            const parts = href.split('/');
+            const resolved = [];
+            for (const p of parts) {
+              if (p === '..') resolved.pop();
+              else if (p && p !== '.') resolved.push(p);
+            }
+            href = resolved.join('/');
+            window.dispatchEvent(new CustomEvent('satorilite:file-open', {
+              detail: { path: href }
+            }));
+          }
+          return;
+        }
+
         e.preventDefault();
         e.stopPropagation();
-
-        const rowIdx = parseInt(cell.dataset.row || '0');
-        const colIdx = parseInt(cell.dataset.col || '0');
-        const info = allCells[rowIdx] ? allCells[rowIdx][colIdx] : null;
-        if (!info) return;
-
-        activateCell(cell, rowIdx, colIdx, 0);
-
-        const clickX = e.clientX;
-        const textNode = cell.firstChild;
-        if (textNode && textNode.nodeType === Node.TEXT_NODE) {
-          const range = document.createRange();
-          const text = textNode.textContent || '';
-          let bestOffset = text.length;
-          for (let c = 0; c <= text.length; c++) {
-            range.setStart(textNode, c);
-            range.collapse(true);
-            const rect = range.getBoundingClientRect();
-            if (rect.left >= clickX) { bestOffset = c; break; }
-          }
-          range.setStart(textNode, bestOffset);
-          range.collapse(true);
-          const sel = window.getSelection();
-          if (sel) { sel.removeAllRanges(); sel.addRange(range); }
-        }
+        view.dispatch({ selection: { anchor: fromPos } });
+        view.focus();
       });
 
       return table;
@@ -335,24 +318,24 @@ export function createLivePreview(StateField, Decoration, WidgetType, EditorView
       tableRanges.push({ start: tableStart, end: doc.lines });
     }
 
-    tablePositions = [];
     for (const t of tableRanges) {
       const startLn = doc.line(t.start);
       const endLn = doc.line(t.end);
       for (let r = t.start; r <= t.end; r++) tableLineSet.add(r);
-      tablePositions.push({ from: startLn.from, to: endLn.to });
 
-      const rawLines = [];
-      const lineOffsets = [];
-      for (let r = t.start; r <= t.end; r++) {
-        const ln = doc.line(r);
-        rawLines.push(ln.text);
-        lineOffsets.push(ln.from);
+      if (!cursorInRange(cursor, startLn.from, endLn.to)) {
+        const rawLines = [];
+        const lineOffsets = [];
+        for (let r = t.start; r <= t.end; r++) {
+          const ln = doc.line(r);
+          rawLines.push(ln.text);
+          lineOffsets.push(ln.from);
+        }
+        ranges.push(Decoration.replace({
+          widget: new TableWidget(rawLines, lineOffsets, startLn.from),
+          block: true,
+        }).range(startLn.from, endLn.to));
       }
-      ranges.push(Decoration.replace({
-        widget: new TableWidget(rawLines, lineOffsets),
-        block: true,
-      }).range(startLn.from, endLn.to));
     }
 
     const mermaidLineSet = new Set();
@@ -540,22 +523,12 @@ export function createLivePreview(StateField, Decoration, WidgetType, EditorView
     return Decoration.set(ranges, true);
   }
 
-  let tablePositions = [];
-
   return StateField.define({
     create(state) {
       return buildDecorations(state);
     },
     update(decos, tr) {
-      if (tr.docChanged) {
-        return buildDecorations(tr.state);
-      }
-      if (tr.selection) {
-        const cursor = tr.state.selection.main.head;
-        // Don't rebuild if cursor is inside a table (let widget handle it)
-        for (const t of tablePositions) {
-          if (cursor >= t.from && cursor <= t.to) return decos;
-        }
+      if (tr.docChanged || tr.selection) {
         return buildDecorations(tr.state);
       }
       return decos;
