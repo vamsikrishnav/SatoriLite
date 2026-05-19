@@ -4,6 +4,7 @@ import { initTree } from './tree.js';
 import { initEditor } from './editor.js';
 import { initRenderer } from './renderer.js';
 import { initViewMode } from './viewmode.js';
+import { initSearch } from './search.js';
 
 // Module state
 let vaultTree = null;
@@ -178,6 +179,7 @@ async function openVault(name, dirHandle) {
     initRenderer();
     initViewMode();
     await initEditor();
+    initSearch();
   } catch (err) {
     console.error('Failed to open vault:', err);
   }
