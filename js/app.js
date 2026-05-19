@@ -8,6 +8,7 @@ import { initSearch } from './search.js';
 import { initThemeChooser } from './themes.js';
 import { initStatusBar } from './status-bar.js';
 import { initResize } from './resize.js';
+import { initTabs } from './tabs.js';
 
 // Module state
 let vaultTree = null;
@@ -183,6 +184,7 @@ async function openVault(name, dirHandle) {
     initViewMode();
     await initEditor();
     initSearch();
+    initTabs();
     initStatusBar();
     initResize();
   } catch (err) {

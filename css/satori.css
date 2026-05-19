@@ -495,6 +495,11 @@ code, pre, .mono {
   flex-shrink: 0;
   overflow-x: auto;
   min-height: 32px;
+  scrollbar-width: none;
+}
+
+.tab-bar::-webkit-scrollbar {
+  display: none;
 }
 
 .tab-bar:empty {
