@@ -1,6 +1,7 @@
 import { pickDirectory, scanDirectory, setRootHandle } from './fs.js';
 import { getRecentVaults, saveVault, removeVault } from './vault-db.js';
 import { initTree } from './tree.js';
+import { initEditor } from './editor.js';
 
 // Module state
 let vaultTree = null;
@@ -170,6 +171,9 @@ async function openVault(name, dirHandle) {
       }
     });
     window.dispatchEvent(event);
+
+    // Initialize the editor
+    await initEditor();
   } catch (err) {
     console.error('Failed to open vault:', err);
   }

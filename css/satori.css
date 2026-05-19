@@ -1014,3 +1014,18 @@ code, pre, .mono {
   font-size: 13px;
   text-align: center;
 }
+
+/* ========== Editor (CodeMirror) ========== */
+
+.editor-area .cm-editor {
+  height: 100%;
+  overflow: auto;
+}
+
+.editor-area .cm-editor.cm-focused {
+  outline: none;
+}
+
+.editor-area .cm-scroller {
+  overflow: auto;
+}
