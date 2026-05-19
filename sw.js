@@ -1,16 +1,32 @@
-const CACHE_NAME = 'satorilite-v2';
+const CACHE_NAME = 'satorilite-v3';
 const APP_SHELL_FILES = [
   '/',
   '/index.html',
+  '/manifest.json',
   '/css/satori.css',
   '/js/app.js',
+  '/js/fs.js',
+  '/js/vault-db.js',
+  '/js/tree.js',
+  '/js/editor.js',
+  '/js/renderer.js',
+  '/js/viewmode.js',
+  '/js/search.js',
+  '/js/themes.js',
+  '/js/status-bar.js',
+  '/js/resize.js',
+  '/js/tabs.js',
+  '/js/file-ops.js',
+  '/js/link-complete.js',
+  '/js/command-palette.js',
   '/lib/codemirror-bundle.js',
+  '/lib/marked.js',
+  '/lib/minisearch.js',
   '/lib/mermaid.esm.min.js',
   '/lib/mermaid.min.js',
   '/lib/katex/katex.min.js',
   '/lib/katex/katex-core.min.js',
   '/lib/katex/katex.min.css',
-  '/manifest.json'
 ];
 
 // Install: precache app shell
