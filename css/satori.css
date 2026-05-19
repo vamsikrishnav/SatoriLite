@@ -1029,3 +1029,268 @@ code, pre, .mono {
 .editor-area .cm-scroller {
   overflow: auto;
 }
+
+/* ========== Preview Pane Typography ========== */
+
+.preview-pane {
+  font-family: 'Literata', Georgia, serif;
+  font-size: 12.5px;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+}
+
+.preview-pane h1 {
+  font-size: 1.5em;
+  font-weight: 700;
+  margin: 1.2em 0 0.4em;
+  color: var(--syn-h1);
+}
+
+.preview-pane h2 {
+  font-size: 1.3em;
+  font-weight: 700;
+  margin: 1em 0 0.3em;
+  color: var(--syn-h2);
+}
+
+.preview-pane h3 {
+  font-size: 1.1em;
+  font-weight: 700;
+  margin: 0.8em 0 0.3em;
+  color: var(--syn-h3);
+}
+
+.preview-pane h4 {
+  font-weight: 700;
+  margin: 0.6em 0 0.2em;
+  color: var(--syn-h4);
+}
+
+.preview-pane h5 {
+  font-weight: 700;
+  margin: 0.6em 0 0.2em;
+  color: var(--syn-h5);
+}
+
+.preview-pane h6 {
+  font-weight: 700;
+  margin: 0.6em 0 0.2em;
+  color: var(--syn-h6);
+}
+
+.preview-pane p {
+  margin: 0.5em 0;
+}
+
+.preview-pane strong {
+  font-weight: 700;
+  color: var(--syn-strong);
+}
+
+.preview-pane em {
+  font-style: italic;
+  color: var(--syn-emphasis);
+}
+
+.preview-pane a {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+.preview-pane a:hover {
+  color: var(--accent-hover);
+}
+
+.preview-pane code {
+  font-size: 0.85em;
+  background: var(--bg-surface0);
+  padding: 2px 5px;
+  border-radius: 3px;
+  color: var(--syn-string);
+}
+
+.preview-pane pre {
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 8px 12px;
+  overflow-x: auto;
+  margin: 0.6em 0;
+  position: relative;
+  line-height: 1.1;
+}
+
+.preview-pane .code-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.preview-pane .code-lang-tag {
+  font-family: 'Inter', -apple-system, sans-serif;
+  font-size: 9px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-faint);
+  opacity: 0.7;
+  user-select: none;
+}
+
+.preview-pane .code-copy-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: var(--text-faint);
+  cursor: pointer;
+  padding: 2px;
+  border-radius: 3px;
+  opacity: 0;
+  transition: opacity 0.15s, color 0.15s;
+}
+
+.preview-pane .code-copy-btn .code-check-icon {
+  display: none;
+}
+
+.preview-pane .code-copy-btn.copied .code-copy-icon {
+  display: none;
+}
+
+.preview-pane .code-copy-btn.copied .code-check-icon {
+  display: inline;
+}
+
+.preview-pane pre:hover .code-copy-btn {
+  opacity: 0.7;
+}
+
+.preview-pane .code-copy-btn:hover {
+  opacity: 1;
+  color: var(--text-normal);
+}
+
+.preview-pane .code-copy-btn.copied {
+  opacity: 1;
+  color: var(--color-green);
+}
+
+.preview-pane pre code {
+  background: none;
+  padding: 0;
+  border-radius: 0;
+  color: var(--text-normal);
+  font-size: 11px;
+  line-height: 1.1;
+  font-family: inherit;
+}
+
+.preview-pane blockquote {
+  border-left: 3px solid var(--accent);
+  margin: 0.8em 0;
+  padding: 4px 16px;
+  color: var(--text-muted);
+  background: var(--bg-surface0);
+  border-radius: 0 var(--radius) var(--radius) 0;
+}
+
+.preview-pane blockquote p {
+  margin: 0.3em 0;
+}
+
+.preview-pane ul,
+.preview-pane ol {
+  margin: 0.5em 0;
+  padding-left: 1.8em;
+}
+
+.preview-pane li {
+  margin: 0.2em 0;
+}
+
+.preview-pane li > ul,
+.preview-pane li > ol {
+  margin: 0.1em 0;
+}
+
+.preview-pane table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 0.8em 0;
+  font-size: inherit;
+}
+
+.preview-pane thead {
+  background: var(--bg-surface0);
+}
+
+.preview-pane th {
+  font-weight: 600;
+  text-align: left;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+}
+
+.preview-pane td {
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+}
+
+.preview-pane tr:nth-child(even) {
+  background: var(--bg-secondary);
+}
+
+.preview-pane tr:hover {
+  background: var(--bg-surface0);
+}
+
+.preview-pane hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 1.5em 0;
+}
+
+.preview-pane img {
+  max-width: 100%;
+  border-radius: var(--radius);
+  background: var(--bg-surface0);
+  padding: 8px;
+}
+
+.preview-pane .mermaid-block {
+  margin: 1em 0;
+  padding: 16px;
+  background: var(--bg-surface0);
+  border-radius: var(--radius);
+  text-align: center;
+}
+
+.preview-pane .math-block {
+  margin: 1em 0;
+  text-align: center;
+  overflow-x: auto;
+}
+
+.preview-pane .math-inline {
+  display: inline;
+}
+
+.preview-pane input[type="checkbox"] {
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border: 1px solid var(--text-faint);
+  border-radius: 3px;
+  background: transparent;
+  cursor: pointer;
+  vertical-align: middle;
+  margin-right: 4px;
+}
+
+.preview-pane input[type="checkbox"]:checked {
+  background: var(--accent);
+  border-color: var(--accent);
+}
