@@ -1500,3 +1500,38 @@ code, pre, .mono {
 .app-layout.sidebar-collapsed .sidebar-left {
   display: none;
 }
+
+/* ========== Link Autocomplete ========== */
+
+.link-complete-dropdown {
+  position: fixed;
+  z-index: 1500;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  max-height: 200px;
+  overflow-y: auto;
+  min-width: 200px;
+  max-width: 400px;
+}
+
+.link-complete-dropdown.hidden {
+  display: none;
+}
+
+.link-complete-item {
+  padding: 6px 12px;
+  font-size: 12px;
+  color: var(--text-normal);
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-family: 'Liga SFMono Nerd Font', 'SF Mono', 'Fira Code', monospace;
+}
+
+.link-complete-item:hover,
+.link-complete-item.selected {
+  background: var(--bg-surface0);
+}

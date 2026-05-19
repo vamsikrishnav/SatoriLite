@@ -10,6 +10,7 @@ import { initStatusBar } from './status-bar.js';
 import { initResize } from './resize.js';
 import { initTabs } from './tabs.js';
 import { initFileOps } from './file-ops.js';
+import { initLinkComplete } from './link-complete.js';
 
 // Module state
 let vaultTree = null;
@@ -185,6 +186,7 @@ async function openVault(name, dirHandle) {
     initViewMode();
     await initEditor();
     initSearch();
+    initLinkComplete();
     initTabs();
     initFileOps();
     initStatusBar();
