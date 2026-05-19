@@ -3,6 +3,7 @@ import { getRecentVaults, saveVault, removeVault } from './vault-db.js';
 import { initTree } from './tree.js';
 import { initEditor } from './editor.js';
 import { initRenderer } from './renderer.js';
+import { initViewMode } from './viewmode.js';
 
 // Module state
 let vaultTree = null;
@@ -173,8 +174,9 @@ async function openVault(name, dirHandle) {
     });
     window.dispatchEvent(event);
 
-    // Initialize the preview renderer and editor
+    // Initialize the preview renderer, view mode, and editor
     initRenderer();
+    initViewMode();
     await initEditor();
   } catch (err) {
     console.error('Failed to open vault:', err);
