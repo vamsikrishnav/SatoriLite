@@ -1,5 +1,6 @@
 import { pickDirectory, scanDirectory, setRootHandle } from './fs.js';
 import { getRecentVaults, saveVault, removeVault } from './vault-db.js';
+import { initTree } from './tree.js';
 
 // Module state
 let vaultTree = null;
@@ -175,4 +176,5 @@ async function openVault(name, dirHandle) {
 }
 
 // Initialize on page load
+initTree();
 init();

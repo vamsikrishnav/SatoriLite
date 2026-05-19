@@ -744,3 +744,273 @@ code, pre, .mono {
 .status-clickable:hover {
   color: var(--text-normal);
 }
+
+/* ========== File Tree ========== */
+
+
+.tree-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 14px 12px;
+  border-bottom: 1px solid var(--border);
+  user-select: none;
+  position: relative;
+  overflow: hidden;
+}
+
+.tree-brand::before {
+  content: '悟';
+  position: absolute;
+  right: -8px;
+  top: -4px;
+  font-size: 52px;
+  font-family: serif;
+  color: var(--accent);
+  opacity: 0.04;
+  pointer-events: none;
+}
+
+.tree-brand-kanji {
+  font-size: 22px;
+  color: var(--accent);
+  opacity: 0.8;
+  font-family: serif;
+  line-height: 1;
+  text-shadow: 0 0 12px rgba(203, 166, 247, 0.2);
+}
+
+.tree-brand-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-normal);
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+}
+
+.tree-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 4px 0;
+}
+
+/* Collapsible sections */
+.tree-section {
+  display: flex;
+  flex-direction: column;
+}
+
+.tree-vault-header {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 8px;
+  margin: 2px 4px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  user-select: none;
+  transition: background var(--transition);
+}
+
+.tree-vault-header:hover {
+  background: var(--bg-surface0);
+}
+
+.tree-vault-toggle {
+  width: 10px;
+  height: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-faint);
+  opacity: 0.6;
+  transition: opacity var(--transition);
+}
+
+.tree-vault-header:hover .tree-vault-toggle {
+  opacity: 1;
+}
+
+.tree-vault-name {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-normal);
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+}
+
+.tree-section > .tree-container {
+  margin-left: 8px;
+}
+
+
+.tree-section-header {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  user-select: none;
+  transition: color var(--transition);
+}
+
+.tree-section-header:hover {
+  color: var(--text-muted);
+}
+
+.tree-section-toggle {
+  font-size: 8px;
+  color: var(--text-faint);
+  transition: transform 0.2s ease;
+}
+
+.tree-section-title {
+  flex: 1;
+}
+
+.tree-container {
+  padding: 2px 0;
+  transition: max-height 0.25s ease, opacity 0.2s ease;
+}
+
+.tree-container.collapsed {
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  padding: 0;
+}
+
+.tree-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px;
+  cursor: pointer;
+  font-size: 11.5px;
+  color: var(--text-normal);
+  border-radius: var(--radius-sm);
+  margin: 0 4px;
+  transition: background var(--transition);
+  user-select: none;
+  position: relative;
+  line-height: 1.3;
+}
+
+.tree-item:hover {
+  background: var(--bg-surface0);
+}
+
+.tree-item.active {
+  background: var(--bg-surface0);
+  color: var(--accent);
+}
+
+.tree-item.active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 4px;
+  bottom: 4px;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--accent);
+}
+
+.tree-folder-toggle {
+  flex-shrink: 0;
+  width: 10px;
+  height: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-faint);
+  opacity: 0.6;
+  transition: opacity var(--transition);
+}
+
+.tree-item-folder:hover .tree-folder-toggle {
+  opacity: 1;
+}
+
+.tree-folder-icon {
+  flex-shrink: 0;
+  width: 16px;
+  height: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.5;
+  color: var(--text-muted);
+  transition: opacity var(--transition);
+}
+
+.tree-item-folder:hover .tree-folder-icon {
+  opacity: 0.8;
+}
+
+.tree-file-icon {
+  flex-shrink: 0;
+  width: 16px;
+  height: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.4;
+  color: var(--text-muted);
+  transition: opacity var(--transition);
+}
+
+.tree-item-file:hover .tree-file-icon {
+  opacity: 0.7;
+}
+
+.tree-item.active .tree-file-icon {
+  opacity: 0.9;
+  color: var(--accent);
+}
+
+.tree-item-label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.4;
+}
+
+.tree-item-folder .tree-item-label {
+  font-weight: 500;
+}
+
+.tree-children {
+  margin-left: 8px;
+}
+
+.tree-add-vault {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  margin: 4px 4px;
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  color: var(--text-faint);
+  cursor: pointer;
+  user-select: none;
+  transition: background var(--transition), color var(--transition);
+}
+
+.tree-add-vault:hover {
+  background: var(--bg-surface0);
+  color: var(--text-muted);
+}
+
+.tree-error {
+  padding: 16px 12px;
+  color: var(--text-faint);
+  font-size: 13px;
+  text-align: center;
+}
