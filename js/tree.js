@@ -3,7 +3,8 @@
  * Renders vault files/folders with expand/collapse and click-to-open.
  */
 
-import { getVaultTree } from './app.js';
+import { getVaultTree, getCurrentVaultName } from './app.js';
+import { getRecentVaults } from './vault-db.js';
 
 // Module state
 let activeFilePath = null;
@@ -228,7 +229,10 @@ function renderFullTree() {
   // Clear sidebar
   sidebar.textContent = '';
 
-  // Brand element
+  // Brand header with open folder button
+  const header = document.createElement('div');
+  header.className = 'tree-header';
+
   const brand = document.createElement('div');
   brand.className = 'tree-brand';
 
@@ -242,7 +246,24 @@ function renderFullTree() {
 
   brand.appendChild(kanji);
   brand.appendChild(name);
-  sidebar.appendChild(brand);
+
+  const openBtn = document.createElement('button');
+  openBtn.className = 'tree-open-btn';
+  openBtn.title = 'Open folder';
+  openBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/><line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/></svg>';
+  openBtn.addEventListener('click', () => {
+    window.dispatchEvent(new CustomEvent('satorilite:open-folder'));
+  });
+
+  header.appendChild(brand);
+  header.appendChild(openBtn);
+  sidebar.appendChild(header);
+
+  // Vault list
+  const vaultListEl = document.createElement('div');
+  vaultListEl.className = 'tree-vault-list';
+  sidebar.appendChild(vaultListEl);
+  renderVaultList(vaultListEl);
 
   // Scroll container
   const scrollContainer = document.createElement('div');
@@ -254,6 +275,22 @@ function renderFullTree() {
   if (tree && tree.length > 0) {
     renderTree(tree, scrollContainer, 0);
   }
+}
+
+async function renderVaultList(container) {
+  const vaults = await getRecentVaults();
+  const activeName = getCurrentVaultName();
+
+  vaults.forEach((vault) => {
+    const item = document.createElement('button');
+    item.className = 'tree-vault-item';
+    if (vault.name === activeName) item.classList.add('active');
+    item.textContent = vault.name;
+    item.addEventListener('click', () => {
+      window.dispatchEvent(new CustomEvent('satorilite:switch-vault', { detail: vault }));
+    });
+    container.appendChild(item);
+  });
 }
 
 /**

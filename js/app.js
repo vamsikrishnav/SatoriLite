@@ -18,10 +18,15 @@ import { initTOC } from './toc.js';
 
 // Module state
 let vaultTree = null;
+let currentVaultName = null;
 
 // Exports
 export function getVaultTree() {
   return vaultTree;
+}
+
+export function getCurrentVaultName() {
+  return currentVaultName;
 }
 
 // DOM elements
@@ -50,6 +55,22 @@ function init() {
 
   // Wire "Open Folder" button
   btnOpenFolderEl.addEventListener('click', handleOpenFolder);
+
+  // Wire open-folder event from sidebar
+  window.addEventListener('satorilite:open-folder', handleOpenFolder);
+
+  // Wire vault switch from sidebar list
+  window.addEventListener('satorilite:switch-vault', async (e) => {
+    const vault = e.detail;
+    try {
+      const permission = await vault.dirHandle.requestPermission({ mode: 'readwrite' });
+      if (permission === 'granted') {
+        await openVault(vault.name, vault.dirHandle);
+      }
+    } catch (err) {
+      console.error('Failed to switch vault:', err);
+    }
+  });
 }
 
 /**
@@ -78,23 +99,19 @@ async function renderRecentVaults() {
  * @returns {HTMLElement}
  */
 function createVaultItem(vault) {
-  // Container
   const vaultItem = document.createElement('div');
   vaultItem.className = 'vault-item';
+  vaultItem.addEventListener('click', () => handleVaultClick(vault));
 
-  // Info section (clickable)
   const vaultItemInfo = document.createElement('div');
   vaultItemInfo.className = 'vault-item-info';
-  vaultItemInfo.addEventListener('click', () => handleVaultClick(vault));
 
-  // Name
   const vaultItemName = document.createElement('div');
   vaultItemName.className = 'vault-item-name';
   vaultItemName.textContent = vault.name;
 
   vaultItemInfo.appendChild(vaultItemName);
 
-  // Delete button
   const deleteBtn = document.createElement('button');
   deleteBtn.className = 'vault-item-delete';
   deleteBtn.textContent = '×';
@@ -163,7 +180,7 @@ async function handleOpenFolder() {
  */
 async function openVault(name, dirHandle) {
   try {
-    // Set root handle in fs module
+    currentVaultName = name;
     setRootHandle(dirHandle);
 
     // Save to IndexedDB

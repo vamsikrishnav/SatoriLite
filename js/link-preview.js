@@ -63,8 +63,8 @@ function resolvePath(href) {
   return normalizePath(href);
 }
 
-async function fetchAndRender(path) {
-  path = resolvePath(path);
+async function fetchAndRender(path, skipResolve = false) {
+  if (!skipResolve) path = resolvePath(path);
   if (!path.endsWith('.md')) path += '.md';
   try {
     const handle = await getFileHandle(path);
@@ -122,15 +122,17 @@ function handleMouseOver(e) {
 
   showTimer = setTimeout(async () => {
     let path;
+    let skipResolve = false;
     if (link) {
       path = link.getAttribute('href') || '';
     } else {
       path = treeItem.getAttribute('data-path') || '';
+      skipResolve = true;
     }
 
     if (!path) return;
 
-    const html = await fetchAndRender(path);
+    const html = await fetchAndRender(path, skipResolve);
     if (!html) return;
 
     const body = popup.querySelector('.preview-body');
@@ -151,6 +153,13 @@ function handleMouseOut(e) {
   scheduleHide();
 }
 
+function hidePopup() {
+  if (showTimer) { clearTimeout(showTimer); showTimer = null; }
+  if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; }
+  if (popup) popup.style.display = 'none';
+  currentTarget = null;
+}
+
 export function initLinkPreview() {
   createPopup();
 
@@ -165,4 +174,6 @@ export function initLinkPreview() {
     sidebar.addEventListener('mouseover', handleMouseOver);
     sidebar.addEventListener('mouseout', handleMouseOut);
   }
+
+  window.addEventListener('satorilite:file-loaded', hidePopup);
 }
