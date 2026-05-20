@@ -24,7 +24,7 @@ export function getCurrentFilePath() {
 function createTheme(EditorView) {
   return EditorView.theme({
     '&': { backgroundColor: 'var(--bg-primary)', color: 'var(--text-normal)', height: '100%' },
-    '.cm-content': { caretColor: 'var(--accent)', fontFamily: "'Liga SFMono Nerd Font', 'SF Mono', 'Fira Code', monospace", fontSize: '12px', lineHeight: '1.1', letterSpacing: '-0.3px', padding: '16px 0' },
+    '.cm-content': { caretColor: 'var(--accent)', fontFamily: "'Liga SFMono Nerd Font', 'SF Mono', 'Fira Code', monospace", fontSize: '13px', lineHeight: '1.6', letterSpacing: '-0.2px', padding: '20px 0' },
     '.cm-cursor, .cm-dropCursor': { borderLeftColor: 'var(--accent)' },
     '&.cm-focused .cm-selectionBackground, .cm-selectionBackground': { backgroundColor: 'var(--bg-surface1)' },
     '.cm-gutters': { backgroundColor: 'var(--bg-secondary)', color: 'var(--text-faint)', borderRight: '1px solid var(--bg-surface0)', fontFamily: "'Liga SFMono Nerd Font', 'SF Mono', 'Fira Code', monospace", fontSize: '12px' },

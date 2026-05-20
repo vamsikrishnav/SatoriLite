@@ -64,6 +64,48 @@
   --transition: 150ms ease;
 }
 
+/* ========== Fonts ========== */
+
+@font-face {
+  font-family: 'Satoshi';
+  src: url('../fonts/Satoshi-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Satoshi';
+  src: url('../fonts/Satoshi-Italic.woff2') format('woff2');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Satoshi';
+  src: url('../fonts/Satoshi-Medium.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Satoshi';
+  src: url('../fonts/Satoshi-MediumItalic.woff2') format('woff2');
+  font-weight: 500;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Satoshi';
+  src: url('../fonts/Satoshi-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
 /* ========== Reset & Base ========== */
 
 *,
@@ -666,7 +708,7 @@ code, pre, .mono {
   flex: 1;
   min-width: 0;
   overflow-y: auto;
-  padding: 24px 32px;
+  padding: 32px 48px;
   background: var(--bg-primary);
 }
 
@@ -1038,53 +1080,55 @@ code, pre, .mono {
 /* ========== Preview Pane Typography ========== */
 
 .preview-pane {
-  font-family: 'Literata', Georgia, serif;
-  font-size: 12.5px;
+  font-family: 'Satoshi', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 14px;
   line-height: 1.3;
   letter-spacing: -0.01em;
 }
 
 .preview-pane h1 {
-  font-size: 1.5em;
+  font-size: 1.75em;
   font-weight: 700;
-  margin: 1.2em 0 0.4em;
+  margin: 1.8em 0 0.6em;
   color: var(--syn-h1);
+  letter-spacing: -0.02em;
 }
 
 .preview-pane h2 {
-  font-size: 1.3em;
+  font-size: 1.4em;
   font-weight: 700;
-  margin: 1em 0 0.3em;
+  margin: 1.5em 0 0.5em;
   color: var(--syn-h2);
+  letter-spacing: -0.01em;
 }
 
 .preview-pane h3 {
-  font-size: 1.1em;
+  font-size: 1.15em;
   font-weight: 700;
-  margin: 0.8em 0 0.3em;
+  margin: 1.3em 0 0.4em;
   color: var(--syn-h3);
 }
 
 .preview-pane h4 {
   font-weight: 700;
-  margin: 0.6em 0 0.2em;
+  margin: 1.1em 0 0.3em;
   color: var(--syn-h4);
 }
 
 .preview-pane h5 {
   font-weight: 700;
-  margin: 0.6em 0 0.2em;
+  margin: 1em 0 0.3em;
   color: var(--syn-h5);
 }
 
 .preview-pane h6 {
   font-weight: 700;
-  margin: 0.6em 0 0.2em;
+  margin: 1em 0 0.3em;
   color: var(--syn-h6);
 }
 
 .preview-pane p {
-  margin: 0.5em 0;
+  margin: 0.6em 0;
 }
 
 .preview-pane strong {
@@ -1109,20 +1153,21 @@ code, pre, .mono {
 .preview-pane code {
   font-size: 0.85em;
   background: var(--bg-surface0);
-  padding: 2px 5px;
-  border-radius: 3px;
+  padding: 2px 6px;
+  border-radius: 4px;
   color: var(--syn-string);
+  font-family: 'Liga SFMono Nerd Font', 'SF Mono', 'Fira Code', monospace;
 }
 
 .preview-pane pre {
-  background: var(--bg-primary);
+  background: var(--bg-secondary);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 8px 12px;
+  padding: 10px 14px;
   overflow-x: auto;
-  margin: 0.6em 0;
+  margin: 1em 0;
   position: relative;
-  line-height: 1.1;
+  line-height: 1;
 }
 
 .preview-pane .code-toolbar {
@@ -1188,32 +1233,32 @@ code, pre, .mono {
   padding: 0;
   border-radius: 0;
   color: var(--text-normal);
-  font-size: 11px;
-  line-height: 1.1;
+  font-size: 11.5px;
+  line-height: 1;
   font-family: inherit;
 }
 
 .preview-pane blockquote {
   border-left: 3px solid var(--accent);
-  margin: 0.8em 0;
-  padding: 4px 16px;
+  margin: 1.2em 0;
+  padding: 8px 20px;
   color: var(--text-muted);
-  background: var(--bg-surface0);
+  background: color-mix(in srgb, var(--bg-surface0) 40%, transparent);
   border-radius: 0 var(--radius) var(--radius) 0;
 }
 
 .preview-pane blockquote p {
-  margin: 0.3em 0;
+  margin: 0.4em 0;
 }
 
 .preview-pane ul,
 .preview-pane ol {
-  margin: 0.5em 0;
+  margin: 0.6em 0;
   padding-left: 1.8em;
 }
 
 .preview-pane li {
-  margin: 0.2em 0;
+  margin: 0.3em 0;
 }
 
 .preview-pane li > ul,
@@ -1223,9 +1268,8 @@ code, pre, .mono {
 
 .preview-pane table {
   border-collapse: collapse;
-  width: 100%;
-  margin: 0.8em 0;
-  font-size: inherit;
+  margin: 1.2em 0;
+  font-size: 0.9em;
 }
 
 .preview-pane thead {
@@ -1235,7 +1279,7 @@ code, pre, .mono {
 .preview-pane th {
   font-weight: 600;
   text-align: left;
-  padding: 8px 12px;
+  padding: 6px 12px;
   border: 1px solid var(--border);
 }
 
@@ -1327,6 +1371,7 @@ code, pre, .mono {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
+  font-family: 'Satoshi', -apple-system, BlinkMacSystemFont, sans-serif;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -1563,6 +1608,7 @@ code, pre, .mono {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   box-shadow: 0 16px 48px rgba(0, 0, 0, 0.35);
+  font-family: 'Satoshi', -apple-system, BlinkMacSystemFont, sans-serif;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -1741,7 +1787,7 @@ code, pre, .mono {
   border-radius: 6px;
   padding: 16px 20px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-  font-family: 'Literata', Georgia, serif;
+  font-family: 'Satoshi', -apple-system, BlinkMacSystemFont, sans-serif;
   font-size: 12.5px;
   line-height: 1.3;
   color: var(--text-normal);

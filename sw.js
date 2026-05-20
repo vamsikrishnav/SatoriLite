@@ -1,9 +1,14 @@
-const CACHE_NAME = 'satorilite-v4';
+const CACHE_NAME = 'satorilite-v5';
 const APP_SHELL_FILES = [
   '/',
   '/index.html',
   '/manifest.json',
   '/css/satori.css',
+  '/fonts/Satoshi-Regular.woff2',
+  '/fonts/Satoshi-Italic.woff2',
+  '/fonts/Satoshi-Medium.woff2',
+  '/fonts/Satoshi-MediumItalic.woff2',
+  '/fonts/Satoshi-Bold.woff2',
   '/js/app.js',
   '/js/fs.js',
   '/js/vault-db.js',
