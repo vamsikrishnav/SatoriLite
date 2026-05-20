@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>SatoriLite UI Mockups</title>
+<style>
+  body { background: #1e1e2e; color: #cdd6f4; font-family: -apple-system, sans-serif; padding: 40px; }
+  h1 { color: #cba6f7; margin-bottom: 8px; }
+  h2 { color: #89b4fa; margin: 48px 0 16px; font-size: 20px; }
+  p.desc { color: #a6adc8; margin-bottom: 24px; font-size: 14px; }
+  .mockup { margin-bottom: 60px; }
+  svg { border-radius: 8px; box-shadow: 0 4px 24px rgba(0,0,0,0.5); }
+</style>
+</head>
+<body>
+
+<h1>SatoriLite — UI Layout Explorations</h1>
+<p class="desc">Three TOC placement options + two overall layout variations. Open this file in a browser.</p>
+
+<!-- Option A: TOC in left sidebar as a tab -->
+<div class="mockup">
+<h2>Option A: TOC as sidebar tab</h2>
+<p class="desc">Toggle between file tree and TOC in the same left sidebar. Compact, no extra panels.</p>
+<svg width="900" height="500" viewBox="0 0 900 500" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="900" height="500" fill="#181825" rx="8"/>
+  <!-- Toolbar -->
+  <rect x="0" y="0" width="900" height="36" fill="#1e1e2e" rx="8"/>
+  <rect x="0" y="28" width="900" height="8" fill="#1e1e2e"/>
+  <!-- Toolbar buttons -->
+  <rect x="220" y="8" width="50" height="20" rx="4" fill="#313244"/>
+  <text x="232" y="22" fill="#cdd6f4" font-size="10" font-family="monospace">Split</text>
+  <rect x="274" y="8" width="52" height="20" rx="4" fill="#313244"/>
+  <text x="282" y="22" fill="#cdd6f4" font-size="10" font-family="monospace">Editor</text>
+  <rect x="330" y="8" width="60" height="20" rx="4" fill="#313244"/>
+  <text x="337" y="22" fill="#cdd6f4" font-size="10" font-family="monospace">Preview</text>
+  <!-- Sidebar -->
+  <rect x="0" y="36" width="210" height="464" fill="#1e1e2e"/>
+  <!-- Sidebar tabs -->
+  <rect x="8" y="44" width="60" height="22" rx="4" fill="#313244"/>
+  <text x="22" y="59" fill="#cba6f7" font-size="10" font-family="monospace">Files</text>
+  <rect x="72" y="44" width="50" height="22" rx="4" fill="#45475a"/>
+  <text x="84" y="59" fill="#cdd6f4" font-size="10" font-family="monospace">TOC</text>
+  <!-- TOC content (active) -->
+  <text x="16" y="88" fill="#cba6f7" font-size="11" font-family="monospace">¶ Introduction</text>
+  <text x="16" y="108" fill="#89b4fa" font-size="11" font-family="monospace">  ¶ Overview</text>
+  <text x="16" y="128" fill="#89b4fa" font-size="11" font-family="monospace">  ¶ Getting Started</text>
+  <text x="16" y="148" fill="#cba6f7" font-size="11" font-family="monospace">¶ Architecture</text>
+  <text x="16" y="168" fill="#89b4fa" font-size="11" font-family="monospace">  ¶ Components</text>
+  <text x="16" y="188" fill="#89b4fa" font-size="11" font-family="monospace">  ¶ Data Flow</text>
+  <text x="16" y="208" fill="#cba6f7" font-size="11" font-family="monospace">¶ API Reference</text>
+  <text x="16" y="228" fill="#89b4fa" font-size="11" font-family="monospace">  ¶ Endpoints</text>
+  <text x="16" y="248" fill="#89b4fa" font-size="11" font-family="monospace">  ¶ Authentication</text>
+  <text x="16" y="268" fill="#cba6f7" font-size="11" font-family="monospace">¶ Deployment</text>
+  <!-- Border -->
+  <line x1="210" y1="36" x2="210" y2="500" stroke="#313244" stroke-width="1"/>
+  <!-- Editor pane -->
+  <rect x="211" y="36" width="344" height="440" fill="#1e1e2e"/>
+  <!-- Editor lines -->
+  <text x="226" y="60" fill="#6c7086" font-size="10" font-family="monospace">1</text>
+  <text x="246" y="60" fill="#f38ba8" font-size="11" font-family="monospace"># Introduction</text>
+  <text x="226" y="78" fill="#6c7086" font-size="10" font-family="monospace">2</text>
+  <text x="226" y="96" fill="#6c7086" font-size="10" font-family="monospace">3</text>
+  <text x="246" y="96" fill="#cdd6f4" font-size="11" font-family="monospace">Welcome to the project...</text>
+  <text x="226" y="114" fill="#6c7086" font-size="10" font-family="monospace">4</text>
+  <text x="226" y="132" fill="#6c7086" font-size="10" font-family="monospace">5</text>
+  <text x="246" y="132" fill="#fab387" font-size="11" font-family="monospace">## Overview</text>
+  <!-- Divider -->
+  <line x1="555" y1="36" x2="555" y2="476" stroke="#313244" stroke-width="1"/>
+  <!-- Preview pane -->
+  <rect x="556" y="36" width="344" height="440" fill="#1e1e2e"/>
+  <text x="576" y="62" fill="#cdd6f4" font-size="18" font-weight="bold" font-family="serif">Introduction</text>
+  <text x="576" y="88" fill="#bac2de" font-size="12" font-family="serif">Welcome to the project...</text>
+  <text x="576" y="118" fill="#cdd6f4" font-size="15" font-weight="bold" font-family="serif">Overview</text>
+  <!-- Status bar -->
+  <rect x="0" y="476" width="900" height="24" fill="#11111b"/>
+  <text x="12" y="491" fill="#6c7086" font-size="10" font-family="monospace">docs/guide.md</text>
+  <text x="780" y="491" fill="#6c7086" font-size="10" font-family="monospace">245 words</text>
+</svg>
+</div>
+
+<!-- Option B: TOC in right sidebar -->
+<div class="mockup">
+<h2>Option B: TOC in right sidebar (outline panel)</h2>
+<p class="desc">Dedicated right panel for document outline. Always visible when toggled. Editor + Preview stay in the middle.</p>
+<svg width="900" height="500" viewBox="0 0 900 500" xmlns="http://www.w3.org/2000/svg">
+  <rect width="900" height="500" fill="#181825" rx="8"/>
+  <!-- Toolbar -->
+  <rect x="0" y="0" width="900" height="36" fill="#1e1e2e" rx="8"/>
+  <rect x="0" y="28" width="900" height="8" fill="#1e1e2e"/>
+  <rect x="220" y="8" width="50" height="20" rx="4" fill="#313244"/>
+  <text x="232" y="22" fill="#cdd6f4" font-size="10" font-family="monospace">Split</text>
+  <!-- Outline button (active) -->
+  <rect x="820" y="8" width="60" height="20" rx="4" fill="#45475a"/>
+  <text x="827" y="22" fill="#cba6f7" font-size="10" font-family="monospace">Outline</text>
+  <!-- Left sidebar (file tree) -->
+  <rect x="0" y="36" width="180" height="464" fill="#1e1e2e"/>
+  <text x="12" y="56" fill="#6c7086" font-size="10" font-family="monospace" font-weight="bold">FILES</text>
+  <text x="12" y="74" fill="#cdd6f4" font-size="11" font-family="monospace">📁 docs</text>
+  <text x="24" y="92" fill="#cba6f7" font-size="11" font-family="monospace">  guide.md</text>
+  <text x="24" y="110" fill="#cdd6f4" font-size="11" font-family="monospace">  api.md</text>
+  <text x="12" y="128" fill="#cdd6f4" font-size="11" font-family="monospace">📁 src</text>
+  <text x="12" y="146" fill="#cdd6f4" font-size="11" font-family="monospace">  README.md</text>
+  <line x1="180" y1="36" x2="180" y2="500" stroke="#313244" stroke-width="1"/>
+  <!-- Editor (full width, no split preview) -->
+  <rect x="181" y="36" width="540" height="440" fill="#1e1e2e"/>
+  <text x="200" y="60" fill="#6c7086" font-size="10" font-family="monospace">1</text>
+  <text x="220" y="60" fill="#f38ba8" font-size="11" font-family="monospace"># Introduction</text>
+  <text x="200" y="78" fill="#6c7086" font-size="10" font-family="monospace">2</text>
+  <text x="200" y="96" fill="#6c7086" font-size="10" font-family="monospace">3</text>
+  <text x="220" y="96" fill="#cdd6f4" font-size="11" font-family="monospace">Welcome to the project documentation.</text>
+  <text x="200" y="114" fill="#6c7086" font-size="10" font-family="monospace">4</text>
+  <text x="200" y="132" fill="#6c7086" font-size="10" font-family="monospace">5</text>
+  <text x="220" y="132" fill="#fab387" font-size="11" font-family="monospace">## Overview</text>
+  <text x="200" y="150" fill="#6c7086" font-size="10" font-family="monospace">6</text>
+  <text x="220" y="150" fill="#cdd6f4" font-size="11" font-family="monospace">This section covers the high-level arch...</text>
+  <!-- Right outline panel -->
+  <line x1="721" y1="36" x2="721" y2="500" stroke="#313244" stroke-width="1"/>
+  <rect x="722" y="36" width="178" height="464" fill="#1e1e2e"/>
+  <text x="734" y="56" fill="#6c7086" font-size="10" font-family="monospace" font-weight="bold">OUTLINE</text>
+  <!-- Outline items with indent lines -->
+  <rect x="730" y="64" width="3" height="12" fill="#f38ba8" rx="1"/>
+  <text x="740" y="74" fill="#cdd6f4" font-size="11" font-family="monospace">Introduction</text>
+  <rect x="740" y="82" width="2" height="12" fill="#fab387" rx="1"/>
+  <text x="750" y="92" fill="#bac2de" font-size="10" font-family="monospace">Overview</text>
+  <rect x="740" y="100" width="2" height="12" fill="#fab387" rx="1"/>
+  <text x="750" y="110" fill="#bac2de" font-size="10" font-family="monospace">Getting Started</text>
+  <rect x="730" y="118" width="3" height="12" fill="#f38ba8" rx="1"/>
+  <text x="740" y="128" fill="#cdd6f4" font-size="11" font-family="monospace">Architecture</text>
+  <rect x="740" y="136" width="2" height="12" fill="#fab387" rx="1"/>
+  <text x="750" y="146" fill="#bac2de" font-size="10" font-family="monospace">Components</text>
+  <rect x="740" y="154" width="2" height="12" fill="#fab387" rx="1"/>
+  <text x="750" y="164" fill="#bac2de" font-size="10" font-family="monospace">Data Flow</text>
+  <rect x="730" y="172" width="3" height="12" fill="#f38ba8" rx="1"/>
+  <text x="740" y="182" fill="#cdd6f4" font-size="11" font-family="monospace">API Reference</text>
+  <rect x="740" y="190" width="2" height="12" fill="#fab387" rx="1"/>
+  <text x="750" y="200" fill="#bac2de" font-size="10" font-family="monospace">Endpoints</text>
+  <rect x="740" y="208" width="2" height="12" fill="#fab387" rx="1"/>
+  <text x="750" y="218" fill="#bac2de" font-size="10" font-family="monospace">Authentication</text>
+  <rect x="730" y="226" width="3" height="12" fill="#f38ba8" rx="1"/>
+  <text x="740" y="236" fill="#cdd6f4" font-size="11" font-family="monospace">Deployment</text>
+  <!-- Active indicator -->
+  <rect x="726" y="64" width="2" height="12" fill="#cba6f7" rx="1"/>
+  <!-- Status bar -->
+  <rect x="0" y="476" width="900" height="24" fill="#11111b"/>
+  <text x="12" y="491" fill="#6c7086" font-size="10" font-family="monospace">docs/guide.md</text>
+  <text x="780" y="491" fill="#6c7086" font-size="10" font-family="monospace">245 words</text>
+</svg>
+</div>
+
+<!-- Option C: TOC as floating popover -->
+<div class="mockup">
+<h2>Option C: TOC as toolbar popover</h2>
+<p class="desc">Click a button → floating menu with headings. Minimal UI footprint. Dismisses after navigation.</p>
+<svg width="900" height="500" viewBox="0 0 900 500" xmlns="http://www.w3.org/2000/svg">
+  <rect width="900" height="500" fill="#181825" rx="8"/>
+  <!-- Toolbar -->
+  <rect x="0" y="0" width="900" height="36" fill="#1e1e2e" rx="8"/>
+  <rect x="0" y="28" width="900" height="8" fill="#1e1e2e"/>
+  <!-- TOC button highlighted -->
+  <rect x="760" y="8" width="40" height="20" rx="4" fill="#cba6f7"/>
+  <text x="770" y="22" fill="#1e1e2e" font-size="10" font-family="monospace">TOC</text>
+  <!-- Left sidebar -->
+  <rect x="0" y="36" width="180" height="464" fill="#1e1e2e"/>
+  <text x="12" y="56" fill="#6c7086" font-size="10" font-family="monospace" font-weight="bold">FILES</text>
+  <text x="12" y="74" fill="#cdd6f4" font-size="11" font-family="monospace">📁 docs</text>
+  <text x="24" y="92" fill="#cba6f7" font-size="11" font-family="monospace">  guide.md</text>
+  <line x1="180" y1="36" x2="180" y2="500" stroke="#313244" stroke-width="1"/>
+  <!-- Editor -->
+  <rect x="181" y="36" width="719" height="440" fill="#1e1e2e"/>
+  <text x="200" y="60" fill="#6c7086" font-size="10" font-family="monospace">1</text>
+  <text x="220" y="60" fill="#f38ba8" font-size="11" font-family="monospace"># Introduction</text>
+  <text x="200" y="78" fill="#6c7086" font-size="10" font-family="monospace">2</text>
+  <text x="220" y="78" fill="#cdd6f4" font-size="11" font-family="monospace">Welcome to the project documentation.</text>
+  <!-- Floating popover -->
+  <rect x="620" y="32" width="220" height="240" rx="6" fill="#1e1e2e" stroke="#45475a" stroke-width="1"/>
+  <!-- Popover shadow -->
+  <rect x="623" y="35" width="220" height="240" rx="6" fill="none" filter="url(#shadow)"/>
+  <text x="636" y="52" fill="#6c7086" font-size="9" font-family="monospace" font-weight="bold">TABLE OF CONTENTS</text>
+  <line x1="630" y1="58" x2="830" y2="58" stroke="#313244" stroke-width="1"/>
+  <!-- Items -->
+  <rect x="630" y="63" width="200" height="22" rx="3" fill="#313244"/>
+  <text x="640" y="78" fill="#cdd6f4" font-size="11" font-family="monospace">Introduction</text>
+  <text x="640" y="100" fill="#bac2de" font-size="10" font-family="monospace">  Overview</text>
+  <text x="640" y="118" fill="#bac2de" font-size="10" font-family="monospace">  Getting Started</text>
+  <text x="640" y="140" fill="#cdd6f4" font-size="11" font-family="monospace">Architecture</text>
+  <text x="640" y="160" fill="#bac2de" font-size="10" font-family="monospace">  Components</text>
+  <text x="640" y="178" fill="#bac2de" font-size="10" font-family="monospace">  Data Flow</text>
+  <text x="640" y="200" fill="#cdd6f4" font-size="11" font-family="monospace">API Reference</text>
+  <text x="640" y="220" fill="#bac2de" font-size="10" font-family="monospace">  Endpoints</text>
+  <text x="640" y="238" fill="#bac2de" font-size="10" font-family="monospace">  Authentication</text>
+  <text x="640" y="260" fill="#cdd6f4" font-size="11" font-family="monospace">Deployment</text>
+  <!-- Status bar -->
+  <rect x="0" y="476" width="900" height="24" fill="#11111b"/>
+  <text x="12" y="491" fill="#6c7086" font-size="10" font-family="monospace">docs/guide.md</text>
+</svg>
+</div>
+
+<!-- Layout variation: wider reading mode -->
+<div class="mockup">
+<h2>Bonus: Reading mode layout</h2>
+<p class="desc">Full-width preview with a narrow outline on the right. For reading/reviewing docs rather than editing.</p>
+<svg width="900" height="500" viewBox="0 0 900 500" xmlns="http://www.w3.org/2000/svg">
+  <rect width="900" height="500" fill="#181825" rx="8"/>
+  <!-- Toolbar -->
+  <rect x="0" y="0" width="900" height="36" fill="#1e1e2e" rx="8"/>
+  <rect x="0" y="28" width="900" height="8" fill="#1e1e2e"/>
+  <rect x="330" y="8" width="60" height="20" rx="4" fill="#45475a"/>
+  <text x="337" y="22" fill="#cba6f7" font-size="10" font-family="monospace">Reading</text>
+  <!-- No left sidebar in reading mode -->
+  <!-- Main content area (centered, max-width) -->
+  <rect x="80" y="50" width="640" height="420" fill="#1e1e2e" rx="4"/>
+  <!-- Rendered markdown content -->
+  <text x="120" y="90" fill="#cdd6f4" font-size="22" font-weight="bold" font-family="'Literata', serif">Introduction</text>
+  <line x1="120" y1="98" x2="660" y2="98" stroke="#313244" stroke-width="1"/>
+  <text x="120" y="124" fill="#bac2de" font-size="13" font-family="'Literata', serif">Welcome to the project documentation. This guide</text>
+  <text x="120" y="142" fill="#bac2de" font-size="13" font-family="'Literata', serif">covers everything you need to know about setting</text>
+  <text x="120" y="160" fill="#bac2de" font-size="13" font-family="'Literata', serif">up and running the application.</text>
+  <text x="120" y="196" fill="#cdd6f4" font-size="17" font-weight="bold" font-family="'Literata', serif">Overview</text>
+  <text x="120" y="222" fill="#bac2de" font-size="13" font-family="'Literata', serif">The system is built on a microservices architecture</text>
+  <text x="120" y="240" fill="#bac2de" font-size="13" font-family="'Literata', serif">with three primary components...</text>
+  <!-- Code block -->
+  <rect x="120" y="260" width="520" height="60" rx="4" fill="#11111b"/>
+  <text x="132" y="278" fill="#cba6f7" font-size="11" font-family="monospace">const</text>
+  <text x="163" y="278" fill="#cdd6f4" font-size="11" font-family="monospace"> app = </text>
+  <text x="208" y="278" fill="#89b4fa" font-size="11" font-family="monospace">createApp</text>
+  <text x="278" y="278" fill="#cdd6f4" font-size="11" font-family="monospace">({</text>
+  <text x="140" y="296" fill="#89b4fa" font-size="11" font-family="monospace">port</text>
+  <text x="166" y="296" fill="#89dceb" font-size="11" font-family="monospace">:</text>
+  <text x="174" y="296" fill="#fab387" font-size="11" font-family="monospace"> 3000</text>
+  <text x="132" y="314" fill="#cdd6f4" font-size="11" font-family="monospace">});</text>
+  <!-- Right outline (slim) -->
+  <line x1="740" y1="36" x2="740" y2="500" stroke="#313244" stroke-width="1"/>
+  <rect x="741" y="36" width="159" height="464" fill="#181825"/>
+  <text x="752" y="56" fill="#6c7086" font-size="9" font-family="monospace">ON THIS PAGE</text>
+  <rect x="748" y="64" width="2" height="10" fill="#cba6f7" rx="1"/>
+  <text x="756" y="73" fill="#cdd6f4" font-size="10" font-family="monospace">Introduction</text>
+  <text x="764" y="89" fill="#bac2de" font-size="9" font-family="monospace">Overview</text>
+  <text x="764" y="103" fill="#bac2de" font-size="9" font-family="monospace">Getting Started</text>
+  <text x="756" y="119" fill="#cdd6f4" font-size="10" font-family="monospace">Architecture</text>
+  <text x="764" y="135" fill="#bac2de" font-size="9" font-family="monospace">Components</text>
+  <text x="764" y="149" fill="#bac2de" font-size="9" font-family="monospace">Data Flow</text>
+  <text x="756" y="165" fill="#cdd6f4" font-size="10" font-family="monospace">API Reference</text>
+  <!-- Status bar -->
+  <rect x="0" y="476" width="900" height="24" fill="#11111b"/>
+  <text x="12" y="491" fill="#6c7086" font-size="10" font-family="monospace">docs/guide.md — Reading mode</text>
+  <text x="750" y="491" fill="#6c7086" font-size="10" font-family="monospace">8 min read</text>
+</svg>
+</div>
+
+</body>
+</html>

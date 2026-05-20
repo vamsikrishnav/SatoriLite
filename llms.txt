@@ -1,0 +1,349 @@
+# SatoriLite
+
+> Offline-first markdown knowledge base. Browser PWA, no server. Files are plain `.md` on the local filesystem via File System Access API.
+
+## Vault Structure
+
+A vault is any folder the user opens. SatoriLite makes no assumptions about its layout — the user's existing structure is respected as-is. The app recognizes these elements:
+
+### What the app understands
+
+| Element | Description |
+|---------|-------------|
+| `.md` files | Notes — the primary content type |
+| `.yaml` files | Structured data (catalogs, registries) — viewable, not editable |
+| Folders (any depth) | Organization — app renders as file tree |
+| `_index.md` | Folder overview/TOC (if present, shown as folder description) |
+| `templates/` | Note templates (if present, offered on new note creation) |
+| `media/` or `images/` | Attachments referenced from notes |
+| `.satorilite/` | App metadata (created by app, not user-managed) |
+
+### Hard limits
+
+- Filenames: UTF-8, max 200 characters, no `/`, `\`, `:`, `*`, `?`, `"`, `<`, `>`, `|`
+- Nesting: no hard limit, but the file tree UI becomes unwieldy past 3 levels
+- File types: `.md` (editable), `.yaml`/`.json` (viewable), images (previewable)
+
+### Filename styles (all supported, auto-detected per folder)
+
+| Style | Example |
+|-------|---------|
+| Title case | `Meeting notes.md` |
+| Numbered-kebab | `01-basic-concepts.md` |
+| Date-prefixed | `2025-01-15 Daily standup.md` |
+| Zettelkasten ID | `202501151430 Attention is all you need.md` |
+| Lowercase-kebab | `api-authentication.md` |
+| Screaming-caps | `README.md`, `CHANGELOG.md` |
+
+The app does not enforce a convention. When creating new files, it matches the style of siblings in the same folder.
+
+## Note Format
+
+```markdown
+---
+tags: [tag1, tag2]
+created: 2025-01-15T09:30:00Z
+modified: 2025-01-15T14:22:00Z
+template: meeting
+aliases: [alternate name, short name]
+---
+
+# Title
+
+Content starts here. The H1 heading matches the filename (without `.md`).
+```
+
+### Frontmatter
+
+Optional YAML frontmatter. All fields are optional:
+
+| Field           | Type       | Description                                              |
+|-----------------|------------|----------------------------------------------------------|
+| `tags`          | string[]   | Categorization labels, lowercase, no spaces              |
+| `created`       | ISO 8601   | Creation timestamp (set once by app)                     |
+| `modified`      | ISO 8601   | Last edit timestamp (updated by app on save)             |
+| `template`      | string     | Template name this note was created from                 |
+| `aliases`       | string[]   | Alternative names for link resolution                    |
+| `related`       | string[]   | Relative paths to related notes (explicit relationships) |
+| `last-verified` | YYYY-MM-DD | Date content was last verified/updated                   |
+| `type`          | string     | Article type: `note`, `concept`, `howto`, `reference`, `tutorial` |
+
+### Content Conventions
+
+- First line after frontmatter is an H1 (`#`) matching the filename
+- Subsequent sections use H2 (`##`) and below
+- Task items use standard checkbox syntax: `- [ ]` / `- [x]`
+- Code blocks use fenced syntax with language identifier
+- Math uses `$inline$` and `$$block$$` (KaTeX)
+- Diagrams use fenced `mermaid` code blocks
+
+## Links
+
+### Syntax
+
+Standard markdown links with relative paths:
+
+```markdown
+[Display text](folder/Note name.md)
+[Another note](Another note.md)
+```
+
+### Resolution Rules
+
+1. Paths resolve relative to the current file first, then vault root as fallback
+2. If target has aliases in frontmatter, links can use any alias
+3. Case-sensitive matching on filename
+4. `.md` extension is required in the link target
+5. `../` traversal is supported for cross-folder links
+
+### Link Graph
+
+- **Outgoing links**: all `[...](*.md)` references in a note
+- **Backlinks**: notes that link TO the current note (computed, not stored)
+- **Orphans**: notes with zero incoming and zero outgoing links
+- **Broken links**: links where the target file does not exist
+
+## Operations
+
+### Create a Note
+
+1. Determine the filename from the title: `<Title>.md`
+2. Determine the location: vault root or an existing folder
+3. Write frontmatter with `created` and `modified` timestamps
+4. Write H1 heading matching the filename
+5. Add content below
+
+### Edit a Note
+
+1. Preserve existing frontmatter fields not being changed
+2. Update `modified` timestamp
+3. Content changes go below the H1
+
+### Move a Note
+
+1. Update the file's path (to any folder in the vault)
+2. Update all links across the vault that referenced the old path
+3. `modified` timestamp does NOT change (move is not an edit)
+
+### Rename a Note
+
+1. Change the filename
+2. Update the H1 heading to match
+3. Update all links across the vault that referenced the old name
+4. `modified` timestamp does NOT change
+
+### Delete a Note
+
+1. Remove the file
+2. Broken links will now exist in other notes (app shows warnings)
+
+### Link Two Notes
+
+1. In the source note, add `[Target title](path/Target title.md)`
+2. Backlinks in the target note are computed automatically (not written to file)
+
+## Journal
+
+### File Naming
+
+`journal/YYYY-MM-DD.md` — one file per day, created on first entry.
+
+### Format
+
+```markdown
+---
+created: 2025-01-15T00:00:00Z
+tags: [journal]
+---
+
+# 2025-01-15
+
+## 09:30
+Morning standup notes here.
+
+## 14:00
+Afternoon deep work session.
+```
+
+Each entry is an H2 with the time (`HH:MM`). Entries are appended chronologically.
+
+## Templates
+
+Templates live in `templates/` and define the skeleton for new notes:
+
+```markdown
+---
+template_name: meeting
+template_description: Notes from a meeting
+---
+
+# {{title}}
+
+**Date:** {{date}}
+**Attendees:**
+
+## Agenda
+
+## Decisions
+
+## Action Items
+
+- [ ]
+```
+
+Variables: `{{title}}`, `{{date}}`, `{{time}}`, `{{folder}}`.
+
+## Navigation and Index Files
+
+Vaults can include special files that help navigate and understand the knowledge base:
+
+### `_index.md`
+
+Per-folder or vault-root table of contents. Contains:
+- Section overview (what this folder covers)
+- Ordered list of articles with one-line descriptions
+- Reading order or prerequisite guidance
+
+### Keyword/Summary Indexes
+
+Optional navigation aids at vault root:
+
+| File pattern | Purpose | Format |
+|---|---|---|
+| `*INDEX*.md` | Keyword → file+heading mappings for targeted lookup | `keyword` → `path.md#heading` |
+| `*SUMMARIES*.md` | One-line content summary per article | `- [Title](path.md) — summary` |
+| `*MAP*.md` or `*CONCEPT*.md` | Relationship diagrams, concept hierarchies | Prose + Mermaid diagrams |
+| `*PATHS*.md` or `*LEARNING*.md` | Role-based reading orders | Ordered lists grouped by role |
+| `*STALENESS*.md` | Content freshness tracking | Article → last-verified date |
+
+### Structured Data Files (`.yaml`)
+
+Vaults may include `.yaml` files as structured catalogs or registries that complement the markdown notes. These are machine-readable indexes (e.g., resource type catalogs, configuration registries). The app treats them as read-only reference data — viewable but not editable in the markdown editor.
+
+## Article Types
+
+Notes can declare a `type` in frontmatter. Each type implies a structure:
+
+### `note` (default)
+Free-form markdown. No required structure.
+
+### `concept`
+Explains what something is and why it exists.
+Expected sections: Introduction → Key Terms → Main Content → See Also
+
+### `howto`
+Step-by-step guide for accomplishing a task.
+Expected sections: Introduction → Key Concepts → Steps (numbered) → See Also
+
+### `reference`
+Data dictionary or API reference.
+Expected sections: Terminology → Resource/Item entries (Description → Example → Field Table → Lifecycle)
+
+### `tutorial`
+Hands-on walkthrough combining multiple concepts.
+Expected sections: TL;DR → What This Covers → Parts with Steps → See Also
+
+An LLM creating content should match the structure of sibling files in the same folder. When no `type` is declared, infer from the content structure.
+
+## Query Routing
+
+When answering questions about the vault:
+
+| User intent                        | Where to look                              |
+|------------------------------------|--------------------------------------------|
+| Recent activity                    | Sort all notes by `modified` descending    |
+| Tasks / todos                      | Grep for `- [ ]` across all notes          |
+| Completed tasks                    | Grep for `- [x]` across all notes          |
+| Daily activity on date X           | `journal/YYYY-MM-DD.md`                    |
+| Notes about topic X               | Search by tag, folder name, or content     |
+| How notes relate                   | Traverse link graph or `related` frontmatter |
+| Orphaned / disconnected notes      | Notes with no inbound or outbound links    |
+| Recently created                   | Sort by `created` frontmatter field        |
+| Notes from template T              | Filter by `template: T` in frontmatter     |
+| Stale / outdated content           | Check `last-verified` frontmatter dates    |
+| Quick orientation                  | Read `_index.md` or `*SUMMARIES*` files    |
+| Keyword lookup                     | Check `*INDEX*` files for keyword → heading |
+| Learning path for role R           | Check `*PATHS*` or `*LEARNING*` files      |
+| Definition of term X              | Check Key Terms sections in `concept` articles |
+| How to do X                        | Filter by `type: howto` or folder name     |
+
+## Tags
+
+- Lowercase, no spaces: `project-alpha`, `meeting`, `idea`
+- Defined in frontmatter `tags` array
+- No global tag registry (tags are emergent from usage)
+- To find all tags: scan frontmatter of all notes
+
+## Search
+
+Full-text search covers:
+- Note content (body text)
+- Filenames
+- Frontmatter fields (tags, aliases)
+- Folder names
+
+Results ranked by: exact match > filename match > tag match > content match.
+
+## Vault Adaptation
+
+SatoriLite imposes no structure on the user's vault. The spec above describes what the app *understands* — not what it requires. Vaults vary wildly:
+
+- Flat folder with 10 notes and no frontmatter
+- Zettelkasten with ID-prefixed files (`202501151430 Attention is all you need.md`) and dense interlinks
+- PARA system (`Projects/`, `Areas/`, `Resources/`, `Archive/`)
+- GTD workflow (`Inbox.md`, `Next actions.md`, `Waiting.md`, `Someday.md`)
+- Software docs (`architecture/`, `adr/`, `runbooks/`, `api/`)
+- Structured knowledge base with numbered articles, indexes, and templates
+- Research vault with literature notes, source annotations, and citation keys
+- Work log / CRM (`clients/`, `meetings/`, `proposals/`)
+
+### LLM Adaptation Rules
+
+1. **Never impose structure the vault doesn't already have.** If existing files lack frontmatter, don't add it. If filenames are lowercase-kebab, don't create Title Case files.
+
+2. **Infer conventions from what exists.** Before creating or modifying content:
+   - Read 2-3 sibling files in the same folder
+   - Match their heading style, frontmatter fields, link format, and naming
+   - If a template file exists (`*TEMPLATE*`, `templates/`), use it
+
+3. **Detect organization pattern from signals:**
+
+   | Signal | Likely pattern |
+   |--------|---------------|
+   | `_index.md` in folders | Curated knowledge base with navigation |
+   | Numbered prefixes (`01-`, `02-`) | Ordered series, read sequentially |
+   | Date prefixes (`2025-01-15` or `202501151430`) | Chronological / Zettelkasten |
+   | `Projects/`, `Areas/`, `Resources/`, `Archive/` | PARA method |
+   | `Inbox.md`, `Next actions.md` | GTD workflow |
+   | `adr/`, `runbooks/`, `api/` | Software documentation |
+   | `journal/` or `daily/` | Daily logging |
+   | Dense `[...](...md)` links, few folders | Graph-first (Zettelkasten-like) |
+   | Deep folder hierarchy, few cross-links | Tree-first (hierarchical) |
+   | `*INDEX*`, `*MAP*`, `*SUMMARIES*` | Has navigation aids — use them |
+   | `*TEMPLATE*` or `templates/` | Has authoring conventions — follow them |
+   | `*STALENESS*`, `last-verified` | Maintained reference — flag stale content |
+
+4. **Route queries using whatever structure exists:**
+   - Has indexes → use them before full-text search
+   - Has frontmatter → filter/sort by fields
+   - Has folders → scope search to relevant folder first
+   - Has only flat files → full-text search is the primary tool
+
+5. **Respect the user's organizational intent.** If files are grouped by topic, don't scatter new files elsewhere. If there's a clear inbox/capture pattern, append there. If there's no pattern, ask before creating structure.
+
+## App Metadata
+
+`.satorilite/config.json` stores user preferences:
+
+```json
+{
+  "theme": "dark",
+  "editorFontSize": 14,
+  "previewPosition": "right",
+  "spellcheck": true,
+  "autoSaveDelayMs": 1000,
+  "excludedFolders": ["node_modules", ".git"]
+}
+```
+
+This file is managed by the app. External tools should read but not write it.
