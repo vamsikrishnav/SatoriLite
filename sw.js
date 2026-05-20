@@ -28,6 +28,7 @@ const APP_SHELL_FILES = [
   '/js/link-preview.js',
   '/js/live-preview.js',
   '/js/toc.js',
+  '/js/backlinks.js',
   '/lib/codemirror-bundle.js',
   '/lib/marked.js',
   '/lib/minisearch.js',

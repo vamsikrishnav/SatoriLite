@@ -804,6 +804,54 @@ code, pre, .mono {
   font-style: italic;
 }
 
+/* ========== Backlinks ========== */
+
+.backlinks-header {
+  padding: 12px 16px 8px;
+  font-family: 'Satoshi', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-faint);
+  border-top: 1px solid var(--border);
+}
+
+.backlinks-list {
+  padding: 0 8px 12px;
+  overflow-y: auto;
+}
+
+.backlink-item {
+  display: block;
+  width: 100%;
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 4px 10px;
+  font-family: 'Satoshi', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 12px;
+  color: var(--text-muted);
+  text-align: left;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: background var(--transition), color var(--transition);
+}
+
+.backlink-item:hover {
+  background: var(--bg-surface0);
+  color: var(--text-normal);
+}
+
+.backlinks-empty {
+  padding: 12px 16px;
+  font-size: 11px;
+  color: var(--text-faint);
+  font-style: italic;
+}
+
 /* ========== Status Bar ========== */
 
 .status-bar {
