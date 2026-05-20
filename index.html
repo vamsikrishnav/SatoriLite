@@ -52,6 +52,9 @@
         <button class="toolbar-btn" id="btn-find" title="Find (Cmd+F)">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         </button>
+        <button class="toolbar-btn" id="btn-toc" title="Table of Contents (Cmd+Shift+O)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+        </button>
         <button class="toolbar-btn" id="btn-theme" title="Theme (Cmd+Shift+T)">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2"/><path d="M12 21v2"/><path d="M4.22 4.22l1.42 1.42"/><path d="M18.36 18.36l1.42 1.42"/><path d="M1 12h2"/><path d="M21 12h2"/><path d="M4.22 19.78l1.42-1.42"/><path d="M18.36 5.64l1.42-1.42"/></svg>
         </button>
@@ -62,6 +65,10 @@
         <div class="preview-pane" id="preview-pane"></div>
       </div>
     </main>
+    <aside class="sidebar-right collapsed" id="sidebar-right">
+      <div class="toc-header">Table of Contents</div>
+      <div class="toc-list" id="toc-list"></div>
+    </aside>
     <footer class="status-bar" id="status-bar">
       <div class="status-bar-left">
         <span class="status-item" id="status-path"></span>

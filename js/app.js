@@ -14,6 +14,7 @@ import { initLinkComplete } from './link-complete.js';
 import { initCommandPalette } from './command-palette.js';
 import { initSyncScroll } from './sync-scroll.js';
 import { initLinkPreview } from './link-preview.js';
+import { initTOC } from './toc.js';
 
 // Module state
 let vaultTree = null;
@@ -196,6 +197,7 @@ async function openVault(name, dirHandle) {
     initResize();
     initSyncScroll();
     initLinkPreview();
+    initTOC();
   } catch (err) {
     console.error('Failed to open vault:', err);
   }
