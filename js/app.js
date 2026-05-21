@@ -16,6 +16,8 @@ import { initSyncScroll } from './sync-scroll.js';
 import { initLinkPreview } from './link-preview.js';
 import { initTOC } from './toc.js';
 import { initBacklinks } from './backlinks.js';
+import { initChat } from './chat.js';
+import { initAIActions } from './ai-actions.js';
 
 // Module state
 let vaultTree = null;
@@ -217,6 +219,8 @@ async function openVault(name, dirHandle) {
     initLinkPreview();
     initTOC();
     initBacklinks();
+    initChat();
+    initAIActions();
   } catch (err) {
     console.error('Failed to open vault:', err);
   }

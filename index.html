@@ -66,10 +66,20 @@
       </div>
     </main>
     <aside class="sidebar-right collapsed" id="sidebar-right">
-      <div class="toc-header">Table of Contents</div>
-      <div class="toc-list" id="toc-list"></div>
-      <div class="backlinks-header">Backlinks</div>
-      <div class="backlinks-list" id="backlinks-list"></div>
+      <div class="sidebar-right-tabs">
+        <button class="sidebar-right-tab active" data-panel="toc">ToC</button>
+        <button class="sidebar-right-tab" data-panel="backlinks">Links</button>
+        <button class="sidebar-right-tab" data-panel="chat" title="AI Chat (Cmd+Shift+L)">Chat</button>
+      </div>
+      <div class="sidebar-right-panel active" id="panel-toc">
+        <div class="toc-header">Table of Contents</div>
+        <div class="toc-list" id="toc-list"></div>
+      </div>
+      <div class="sidebar-right-panel" id="panel-backlinks">
+        <div class="backlinks-header">Backlinks</div>
+        <div class="backlinks-list" id="backlinks-list"></div>
+      </div>
+      <div class="sidebar-right-panel" id="panel-chat"></div>
     </aside>
     <footer class="status-bar" id="status-bar">
       <div class="status-bar-left">

@@ -4,3 +4,14 @@ node_modules/
 dist/
 .env
 .env.local
+
+# Server
+server/.venv/
+server/__pycache__/
+server/tests/__pycache__/
+*.pyc
+__pycache__/
+
+# Index data (generated)
+.satorilite/index/
+.satorilite/.env
