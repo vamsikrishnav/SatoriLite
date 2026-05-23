@@ -18,13 +18,13 @@ export function initTOC() {
 
   const toggleBtn = document.getElementById('btn-toc');
   if (toggleBtn) {
-    toggleBtn.addEventListener('click', toggleRightSidebar);
+    toggleBtn.addEventListener('click', () => showPanel('outline'));
   }
 
   document.addEventListener('keydown', (e) => {
     if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'o') {
       e.preventDefault();
-      toggleRightSidebar();
+      showPanel('outline');
     }
   });
 
@@ -38,11 +38,25 @@ export function initTOC() {
   });
 }
 
-function toggleRightSidebar() {
+function showPanel(panelName) {
   const sidebar = document.getElementById('sidebar-right');
   if (!sidebar) return;
-  sidebar.classList.toggle('collapsed');
+
+  const targetPanel = sidebar.querySelector(`#panel-${panelName}`);
+  const isAlreadyActive = targetPanel && targetPanel.classList.contains('active');
+  const isOpen = !sidebar.classList.contains('collapsed');
+
+  if (isOpen && isAlreadyActive) {
+    sidebar.classList.add('collapsed');
+    return;
+  }
+
+  sidebar.querySelectorAll('.sidebar-right-panel').forEach(p => p.classList.remove('active'));
+  if (targetPanel) targetPanel.classList.add('active');
+  sidebar.classList.remove('collapsed');
 }
+
+export { showPanel };
 
 function updateTOC(content) {
   if (!tocContainer || !content) {

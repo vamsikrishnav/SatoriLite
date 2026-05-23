@@ -22,18 +22,6 @@ export function initChat() {
   const sidebar = document.getElementById('sidebar-right');
   if (!sidebar) return;
 
-  // Wire sidebar tab switching
-  const tabs = sidebar.querySelectorAll('.sidebar-right-tab');
-  tabs.forEach(tab => {
-    tab.addEventListener('click', () => {
-      tabs.forEach(t => t.classList.remove('active'));
-      sidebar.querySelectorAll('.sidebar-right-panel').forEach(p => p.classList.remove('active'));
-      tab.classList.add('active');
-      const target = sidebar.querySelector(`#panel-${tab.dataset.panel}`);
-      if (target) target.classList.add('active');
-    });
-  });
-
   // Build chat panel inside #panel-chat
   const chatContainer = document.getElementById('panel-chat');
   if (!chatContainer) return;
@@ -261,14 +249,24 @@ export function toggleChat(forceState) {
   const sidebar = document.getElementById('sidebar-right');
   if (!sidebar) return;
 
+  // Switch to chat panel
+  sidebar.querySelectorAll('.sidebar-right-panel').forEach(p => p.classList.remove('active'));
+  const chatPanel = sidebar.querySelector('#panel-chat');
+  if (chatPanel) chatPanel.classList.add('active');
+
   if (forceState === undefined) {
-    sidebar.classList.toggle('collapsed');
+    const isOpen = !sidebar.classList.contains('collapsed');
+    const chatActive = chatPanel && chatPanel.classList.contains('active');
+    if (isOpen && chatActive) {
+      sidebar.classList.add('collapsed');
+    } else {
+      sidebar.classList.remove('collapsed');
+    }
   } else if (forceState) {
     sidebar.classList.remove('collapsed');
   } else {
     sidebar.classList.add('collapsed');
   }
-
 
   // Focus textarea when opening
   if (!sidebar.classList.contains('collapsed')) {
