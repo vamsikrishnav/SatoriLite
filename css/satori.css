@@ -2094,3 +2094,13 @@ code, pre, .mono {
 .switcher-result-name { font-size: 13px; color: var(--text-primary); }
 .switcher-result-path { font-size: 11px; color: var(--text-muted); }
 .switcher-highlight { color: var(--accent-primary); font-weight: 600; }
+
+/* Shortcuts panel */
+.shortcuts-backdrop { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.5); display: flex; justify-content: center; align-items: center; z-index: 9999; }
+.shortcuts-backdrop.hidden { display: none; }
+.shortcuts-modal { background: var(--bg-secondary); border: 1px solid var(--border-primary); border-radius: 8px; padding: 24px; width: 420px; max-width: 90vw; box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4); outline: none; }
+.shortcuts-modal h3 { margin: 0 0 16px; font-size: 15px; font-weight: 600; color: var(--text-primary); }
+.shortcuts-grid { display: grid; grid-template-columns: auto 1fr; gap: 8px 16px; align-items: center; }
+.shortcuts-keys { display: flex; align-items: center; gap: 4px; }
+.shortcuts-keys kbd { display: inline-block; padding: 2px 6px; font-size: 11px; font-family: inherit; background: var(--bg-tertiary); border: 1px solid var(--border-primary); border-radius: 4px; color: var(--text-primary); }
+.shortcuts-action { font-size: 13px; color: var(--text-muted); }

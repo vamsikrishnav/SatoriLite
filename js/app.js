@@ -21,6 +21,7 @@ import { initAIActions } from './ai-actions.js';
 import { initWebSocket, disconnectWebSocket } from './ws.js';
 import { initBreadcrumb } from './breadcrumb.js';
 import { initSwitcher } from './switcher.js';
+import { initShortcutsPanel } from './shortcuts-panel.js';
 
 // Module state
 let vaultTree = null;
@@ -234,5 +235,6 @@ async function openVault(name, dirHandle) {
 initThemeChooser();
 initCommandPalette();
 initSwitcher();
+initShortcutsPanel();
 initTree();
 init();
