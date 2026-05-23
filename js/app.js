@@ -18,6 +18,7 @@ import { initTOC } from './toc.js';
 import { initBacklinks } from './backlinks.js';
 import { initChat } from './chat.js';
 import { initAIActions } from './ai-actions.js';
+import { initWebSocket, disconnectWebSocket } from './ws.js';
 
 // Module state
 let vaultTree = null;
@@ -165,10 +166,9 @@ async function handleVaultDelete(vaultName) {
  */
 async function handleOpenFolder() {
   try {
-    const dirHandle = await pickDirectory();
+    const dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
     await openVault(dirHandle.name, dirHandle);
   } catch (err) {
-    // User cancelled - silently ignore AbortError
     if (err.name === 'AbortError') {
       return;
     }
@@ -221,6 +221,7 @@ async function openVault(name, dirHandle) {
     initBacklinks();
     initChat();
     initAIActions();
+    initWebSocket();
   } catch (err) {
     console.error('Failed to open vault:', err);
   }

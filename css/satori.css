@@ -747,6 +747,22 @@ code, pre, .mono {
   border-left: none;
 }
 
+.resize-handle-right {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  cursor: col-resize;
+  z-index: 10;
+  background: transparent;
+  transition: background 0.15s;
+}
+.resize-handle-right:hover,
+.resize-handle-right.dragging {
+  background: var(--accent-primary);
+}
+
 .sidebar-left.collapsed .resize-handle,
 .sidebar-right.collapsed .resize-handle {
   display: none;
@@ -2027,8 +2043,10 @@ code, pre, .mono {
 .chat-textarea { flex: 1; resize: none; background: var(--bg-tertiary); border: 1px solid var(--border-primary); border-radius: 6px; padding: 8px; font-size: 13px; color: var(--text-primary); font-family: inherit; }
 .chat-textarea:focus { outline: none; border-color: var(--accent-primary); }
 .chat-send-btn { padding: 6px 12px; }
-.chat-model-bar, .chat-mode-bar, .chat-index-bar { display: flex; align-items: center; gap: 8px; padding: 4px 12px; font-size: 11px; color: var(--text-muted); }
-.chat-model-select, .chat-mode-select { background: var(--bg-tertiary); border: 1px solid var(--border-primary); border-radius: 4px; padding: 2px 6px; font-size: 11px; color: var(--text-primary); }
+.chat-model-bar, .chat-mode-bar, .chat-index-bar, .chat-vault-bar { display: flex; align-items: center; gap: 8px; padding: 4px 12px; font-size: 11px; color: var(--text-muted); }
+.chat-model-select, .chat-mode-select, .chat-vault-select { background: var(--bg-tertiary); border: 1px solid var(--border-primary); border-radius: 4px; padding: 2px 6px; font-size: 11px; color: var(--text-primary); flex: 1; }
+.chat-add-vault-btn { background: var(--bg-tertiary); border: 1px solid var(--border-primary); border-radius: 4px; width: 22px; height: 22px; font-size: 14px; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.chat-add-vault-btn:hover { color: var(--text-primary); background: var(--bg-hover); }
 .chat-index-status.indexed { color: var(--green, #a6e3a1); }
 .chat-loading { display: flex; gap: 4px; padding: 8px 12px; }
 .chat-loading .dot { width: 6px; height: 6px; background: var(--text-muted); border-radius: 50%; animation: chatBounce 1.2s infinite; }
@@ -2047,3 +2065,9 @@ code, pre, .mono {
 .ai-actions-item:hover { background: rgba(137, 180, 250, 0.1); }
 .ai-actions-item.disabled { opacity: 0.4; cursor: default; }
 .ai-actions-item.disabled:hover { background: none; }
+
+/* WebSocket status dot */
+.ws-status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--text-muted); opacity: 0.4; margin-right: 6px; transition: background 0.3s, opacity 0.3s; }
+.ws-status-dot.connected { background: var(--green, #a6e3a1); opacity: 1; }
+.ws-status-dot.indexing { background: var(--yellow, #f9e2af); opacity: 1; animation: wsPulse 1s infinite; }
+@keyframes wsPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
