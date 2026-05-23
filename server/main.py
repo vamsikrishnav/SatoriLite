@@ -6,7 +6,7 @@ import logging
 from pathlib import Path
 
 import boto3
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -32,6 +32,7 @@ logging.basicConfig(
 app = FastAPI(title="SatoriLite RAG Server")
 
 event_queue: asyncio.Queue = asyncio.Queue(maxsize=1000)
+ws_clients: set[WebSocket] = set()
 vault_watcher: VaultWatcher | None = None
 
 # Runtime vault state (mutable)
@@ -126,16 +127,33 @@ def _rebuild_link_graph():
     logger.info("Link graph built: %d nodes", len(graph))
 
 
+async def _broadcast(message: str):
+    """Send a message to all WebSocket clients, removing dead connections."""
+    dead: set[WebSocket] = set()
+    for ws in ws_clients:
+        try:
+            await ws.send_text(message)
+        except Exception:
+            dead.add(ws)
+    ws_clients.difference_update(dead)
+
+
 async def _process_events():
     while True:
         message = await event_queue.get()
         try:
+            # Broadcast raw file-change event to all WebSocket clients
+            await _broadcast(message)
+
             event = json.loads(message)
             path = event.get("path", "")
             event_type = event.get("type", "")
 
             if not path.endswith(".md"):
                 continue
+
+            # Notify clients that indexing started
+            await _broadcast(json.dumps({"type": "indexing", "status": "busy", "path": path}))
 
             if event_type in ("created", "modified"):
                 try:
@@ -151,6 +169,10 @@ async def _process_events():
                 remove_from_fts("default", path)
                 await asyncio.to_thread(_rebuild_link_graph)
                 logger.info("Removed from index: %s", path)
+
+            # Notify clients that indexing finished
+            await _broadcast(json.dumps({"type": "indexing", "status": "done", "path": path}))
+
         except Exception as e:
             logger.warning("Error processing event: %s", e)
 
@@ -395,6 +417,24 @@ async def switch_vault(request: Request):
         "vault": abs_path,
         "index_dir": _get_index_dir(),
     }
+
+
+# ---------------------------------------------------------------------------
+# WebSocket: live file-change notifications
+# ---------------------------------------------------------------------------
+
+
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    await websocket.accept()
+    ws_clients.add(websocket)
+    try:
+        while True:
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        pass
+    finally:
+        ws_clients.discard(websocket)
 
 
 # ---------------------------------------------------------------------------
