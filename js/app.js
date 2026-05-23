@@ -19,6 +19,7 @@ import { initBacklinks } from './backlinks.js';
 import { initChat } from './chat.js';
 import { initAIActions } from './ai-actions.js';
 import { initWebSocket, disconnectWebSocket } from './ws.js';
+import { initBreadcrumb } from './breadcrumb.js';
 
 // Module state
 let vaultTree = null;
@@ -212,6 +213,7 @@ async function openVault(name, dirHandle) {
     initSearch();
     initLinkComplete();
     initTabs();
+    initBreadcrumb();
     initFileOps();
     initStatusBar();
     initResize();

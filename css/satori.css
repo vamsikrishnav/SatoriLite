@@ -2071,3 +2071,12 @@ code, pre, .mono {
 .ws-status-dot.connected { background: var(--green, #a6e3a1); opacity: 1; }
 .ws-status-dot.indexing { background: var(--yellow, #f9e2af); opacity: 1; animation: wsPulse 1s infinite; }
 @keyframes wsPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+/* Breadcrumb bar */
+.breadcrumb-bar { display: flex; align-items: center; padding: 2px 12px; font-size: 11px; color: var(--text-muted); background: var(--bg-primary); border-bottom: 1px solid var(--border-primary); min-height: 20px; gap: 2px; overflow: hidden; white-space: nowrap; }
+.breadcrumb-bar:empty { display: none; }
+.breadcrumb-segment { color: var(--text-muted); padding: 1px 3px; border-radius: 3px; }
+.breadcrumb-segment:hover { color: var(--text-primary); background: rgba(255,255,255,0.05); }
+.breadcrumb-segment.current { color: var(--text-primary); font-weight: 500; }
+.breadcrumb-segment.current:hover { background: none; cursor: default; }
+.breadcrumb-separator { color: var(--text-muted); opacity: 0.5; margin: 0 1px; }
