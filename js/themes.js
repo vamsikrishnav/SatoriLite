@@ -354,6 +354,62 @@ const THEMES = {
       '--syn-strong': '#eb6f92',
     },
   },
+  'tactical': {
+    name: 'Tactical',
+    dark: true,
+    vars: {
+      '--bg-primary': '#0a1628',
+      '--bg-secondary': '#0d1b30',
+      '--bg-tertiary': '#061018',
+      '--bg-surface0': '#132240',
+      '--bg-surface1': '#1a2d4a',
+      '--bg-surface2': '#243a56',
+      '--bg-hover': 'rgba(0, 229, 255, 0.08)',
+      '--text-normal': '#c8dce8',
+      '--text-primary': '#c8dce8',
+      '--text-muted': '#7a99b5',
+      '--text-faint': '#4a6a82',
+      '--text-subtext0': '#94b3cc',
+      '--accent': '#00e5ff',
+      '--accent-primary': '#00e5ff',
+      '--accent-hover': '#4dd0e1',
+      '--color-red': '#ff5252',
+      '--color-green': '#00e676',
+      '--color-yellow': '#f0b429',
+      '--color-blue': '#00e5ff',
+      '--color-purple': '#7c4dff',
+      '--color-peach': '#f0b429',
+      '--color-teal': '#00e5ff',
+      '--color-sky': '#4dd0e1',
+      '--color-lavender': '#7c4dff',
+      '--color-pink': '#ff4081',
+      '--border': '#1a3a5c',
+      '--border-primary': '#1a3a5c',
+      '--border-focus': '#00e5ff',
+      '--green': '#00e676',
+      '--yellow': '#f0b429',
+      '--syn-h1': '#00e5ff',
+      '--syn-h2': '#f0b429',
+      '--syn-h3': '#00e676',
+      '--syn-h4': '#4dd0e1',
+      '--syn-h5': '#7c4dff',
+      '--syn-h6': '#ff4081',
+      '--syn-keyword': '#00e5ff',
+      '--syn-string': '#00e676',
+      '--syn-comment': '#4a6a82',
+      '--syn-number': '#f0b429',
+      '--syn-function': '#4dd0e1',
+      '--syn-type': '#f0b429',
+      '--syn-operator': '#7a99b5',
+      '--syn-property': '#4dd0e1',
+      '--syn-tag': '#00e5ff',
+      '--syn-attribute': '#4dd0e1',
+      '--syn-meta': '#ff5252',
+      '--syn-link': '#00e5ff',
+      '--syn-emphasis': '#ff4081',
+      '--syn-strong': '#f0b429',
+    },
+  },
 };
 
 const STORAGE_KEY = 'satorilite:theme';
@@ -375,6 +431,8 @@ function applyTheme(id) {
   for (const [prop, value] of Object.entries(theme.vars)) {
     root.style.setProperty(prop, value);
   }
+
+  root.setAttribute('data-theme', id);
 
   currentThemeId = id;
   localStorage.setItem(STORAGE_KEY, id);

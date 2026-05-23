@@ -2104,3 +2104,66 @@ code, pre, .mono {
 .shortcuts-keys { display: flex; align-items: center; gap: 4px; }
 .shortcuts-keys kbd { display: inline-block; padding: 2px 6px; font-size: 11px; font-family: inherit; background: var(--bg-tertiary); border: 1px solid var(--border-primary); border-radius: 4px; color: var(--text-primary); }
 .shortcuts-action { font-size: 13px; color: var(--text-muted); }
+
+/* ========== Tactical Theme Overrides ========== */
+[data-theme="tactical"] {
+  background:
+    repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(0, 229, 255, 0.03) 39px, rgba(0, 229, 255, 0.03) 40px),
+    repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(0, 229, 255, 0.03) 39px, rgba(0, 229, 255, 0.03) 40px),
+    #0a1628;
+}
+[data-theme="tactical"] .sidebar-left,
+[data-theme="tactical"] .sidebar-right {
+  border-color: rgba(0, 229, 255, 0.2);
+  box-shadow: inset 0 0 20px rgba(0, 229, 255, 0.03);
+}
+[data-theme="tactical"] .view-toggle {
+  border-bottom-color: rgba(0, 229, 255, 0.15);
+}
+[data-theme="tactical"] .tab-bar {
+  border-bottom-color: rgba(0, 229, 255, 0.15);
+}
+[data-theme="tactical"] .breadcrumb-bar {
+  border-bottom-color: rgba(0, 229, 255, 0.1);
+}
+[data-theme="tactical"] .status-bar {
+  border-top-color: rgba(0, 229, 255, 0.2);
+  box-shadow: 0 -1px 8px rgba(0, 229, 255, 0.05);
+}
+[data-theme="tactical"] .view-toggle-btn.active {
+  color: #00e5ff;
+  border-color: #00e5ff;
+  box-shadow: 0 0 6px rgba(0, 229, 255, 0.3);
+}
+[data-theme="tactical"] .toolbar-btn:hover {
+  color: #00e5ff;
+  background: rgba(0, 229, 255, 0.1);
+}
+[data-theme="tactical"] .switcher-modal,
+[data-theme="tactical"] .shortcuts-modal,
+[data-theme="tactical"] .command-palette {
+  border-color: rgba(0, 229, 255, 0.4);
+  box-shadow: 0 0 24px rgba(0, 229, 255, 0.1), 0 16px 48px rgba(0, 0, 0, 0.6);
+}
+[data-theme="tactical"] .switcher-result.selected,
+[data-theme="tactical"] .switcher-result:hover {
+  background: rgba(0, 229, 255, 0.1);
+}
+[data-theme="tactical"] .chat-message-user {
+  background: rgba(0, 229, 255, 0.15);
+  color: #c8dce8;
+  border: 1px solid rgba(0, 229, 255, 0.3);
+}
+[data-theme="tactical"] .chat-message-ai {
+  border: 1px solid rgba(0, 229, 255, 0.1);
+}
+[data-theme="tactical"] .ws-status-dot.connected {
+  box-shadow: 0 0 6px rgba(0, 230, 118, 0.6);
+}
+[data-theme="tactical"] .tree-item:hover {
+  background: rgba(0, 229, 255, 0.06);
+}
+[data-theme="tactical"] .tree-item.active {
+  background: rgba(0, 229, 255, 0.1);
+  border-left: 2px solid #00e5ff;
+}
