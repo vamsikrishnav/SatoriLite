@@ -20,6 +20,7 @@ import { initChat } from './chat.js';
 import { initAIActions } from './ai-actions.js';
 import { initWebSocket, disconnectWebSocket } from './ws.js';
 import { initBreadcrumb } from './breadcrumb.js';
+import { initSwitcher } from './switcher.js';
 
 // Module state
 let vaultTree = null;
@@ -232,5 +233,6 @@ async function openVault(name, dirHandle) {
 // Initialize on page load
 initThemeChooser();
 initCommandPalette();
+initSwitcher();
 initTree();
 init();
