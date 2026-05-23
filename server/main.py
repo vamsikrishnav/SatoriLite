@@ -7,10 +7,10 @@ from pathlib import Path
 
 import boto3
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
+from fastapi.staticfiles import StaticFiles
 
-from server.config import AWS_REGION, BEDROCK_MODEL_ID, VAULT_PATH, INDEX_DIR
+from server.config import AWS_REGION, BEDROCK_MODEL_ID, VAULT_PATH, INDEX_DIR, index_dir_for_vault
 from server.indexer import (
     build_vault_index, reindex_file, remove_file_from_index,
     get_chunk_index, get_doc_index, reconcile_vault_index, embed_texts,
@@ -20,6 +20,7 @@ from server.fts import build_fts_index, get_fts_index, index_file as fts_index_f
 from server.graph import build_link_graph, save_link_graph, load_link_graph
 from server.watcher import VaultWatcher
 from server.generate import generate_structured_output, PROMPT_BUILDERS
+from server.registry import list_vaults, add_vault, remove_vault as registry_remove_vault
 
 logger = logging.getLogger("satorilite")
 logging.basicConfig(
@@ -30,20 +31,24 @@ logging.basicConfig(
 
 app = FastAPI(title="SatoriLite RAG Server")
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["http://localhost:*", "http://127.0.0.1:*", "null"],
-    allow_origin_regex=r"http://(localhost|127\.0\.0\.1)(:\d+)?",
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
 event_queue: asyncio.Queue = asyncio.Queue(maxsize=1000)
 vault_watcher: VaultWatcher | None = None
 
+# Runtime vault state (mutable)
+active_vault_path: str = VAULT_PATH
+active_index_dir: str = INDEX_DIR
+
+
+def _get_vault_path() -> str:
+    return active_vault_path
+
+
+def _get_index_dir() -> str:
+    return active_index_dir
+
 
 def _read_llms_txt() -> str:
-    path = Path(VAULT_PATH) / "llms.txt"
+    path = Path(_get_vault_path()) / "llms.txt"
     if path.exists():
         try:
             return path.read_text(encoding="utf-8")
@@ -52,30 +57,51 @@ def _read_llms_txt() -> str:
     return ""
 
 
+async def _activate_vault(vault_path: str):
+    """Switch to a vault: reconcile index, rebuild FTS + graph, start watcher."""
+    global active_vault_path, active_index_dir, vault_watcher
+
+    active_vault_path = vault_path
+    active_index_dir = index_dir_for_vault(vault_path)
+    Path(active_index_dir).mkdir(parents=True, exist_ok=True)
+
+    # Stop existing watcher
+    if vault_watcher:
+        vault_watcher.stop_all()
+        vault_watcher = None
+
+    if not Path(vault_path).is_dir():
+        return
+
+    # Reconcile FAISS index
+    try:
+        await asyncio.to_thread(reconcile_vault_index, vault_path, active_index_dir)
+        logger.info("FAISS index reconciled for %s", vault_path)
+    except Exception as e:
+        logger.error("Failed to reconcile FAISS index: %s", e)
+
+    # Build/load FTS
+    fts_idx = get_fts_index("default")
+    if not fts_idx.load() or fts_idx.doc_count() == 0:
+        await asyncio.to_thread(build_fts_index, "default", vault_path)
+
+    # Build link graph
+    await asyncio.to_thread(_rebuild_link_graph)
+
+    # Start watcher
+    loop = asyncio.get_running_loop()
+    vault_watcher = VaultWatcher(event_queue, loop)
+    vault_watcher.watch(vault_path)
+
+
 @app.on_event("startup")
 async def startup():
-    global vault_watcher
-    loop = asyncio.get_running_loop()
+    Path(active_index_dir).mkdir(parents=True, exist_ok=True)
 
-    Path(INDEX_DIR).mkdir(parents=True, exist_ok=True)
+    if Path(active_vault_path).is_dir() and active_vault_path != ".":
+        await _activate_vault(active_vault_path)
 
-    vault_path = VAULT_PATH
-    if Path(vault_path).is_dir():
-        try:
-            await asyncio.to_thread(reconcile_vault_index, vault_path, INDEX_DIR)
-            logger.info("FAISS index reconciled for %s", vault_path)
-        except Exception as e:
-            logger.error("Failed to reconcile FAISS index: %s", e)
-
-        fts_idx = get_fts_index("default")
-        if not fts_idx.load() or fts_idx.doc_count() == 0:
-            await asyncio.to_thread(build_fts_index, "default", vault_path)
-
-        await asyncio.to_thread(_rebuild_link_graph)
-
-        vault_watcher = VaultWatcher(event_queue, loop)
-        vault_watcher.watch(vault_path)
-        asyncio.create_task(_process_events())
+    asyncio.create_task(_process_events())
 
 
 @app.on_event("shutdown")
@@ -85,7 +111,7 @@ async def shutdown():
 
 
 def _rebuild_link_graph():
-    vault = Path(VAULT_PATH)
+    vault = Path(_get_vault_path())
     files: dict[str, str] = {}
     for md_file in vault.rglob("*.md"):
         parts = md_file.relative_to(vault).parts
@@ -96,7 +122,7 @@ def _rebuild_link_graph():
         except (UnicodeDecodeError, PermissionError):
             continue
     graph = build_link_graph(files)
-    save_link_graph(graph, INDEX_DIR)
+    save_link_graph(graph, _get_index_dir())
     logger.info("Link graph built: %d nodes", len(graph))
 
 
@@ -114,14 +140,14 @@ async def _process_events():
             if event_type in ("created", "modified"):
                 try:
                     content = Path(path).read_text(encoding="utf-8")
-                    await asyncio.to_thread(reindex_file, INDEX_DIR, path, content)
+                    await asyncio.to_thread(reindex_file, _get_index_dir(), path, content)
                     fts_index_file("default", path, content)
                     await asyncio.to_thread(_rebuild_link_graph)
                     logger.info("Reindexed: %s", path)
                 except (OSError, UnicodeDecodeError) as e:
                     logger.warning("Failed to reindex %s: %s", path, e)
             elif event_type == "deleted":
-                await asyncio.to_thread(remove_file_from_index, INDEX_DIR, path)
+                await asyncio.to_thread(remove_file_from_index, _get_index_dir(), path)
                 remove_from_fts("default", path)
                 await asyncio.to_thread(_rebuild_link_graph)
                 logger.info("Removed from index: %s", path)
@@ -131,12 +157,12 @@ async def _process_events():
 
 @app.get("/api/status")
 async def status():
-    chunk_index = get_chunk_index(INDEX_DIR)
-    doc_index = get_doc_index(INDEX_DIR)
-    graph = load_link_graph(INDEX_DIR)
+    chunk_index = get_chunk_index(_get_index_dir())
+    doc_index = get_doc_index(_get_index_dir())
+    graph = load_link_graph(_get_index_dir())
     return {
         "status": "ok",
-        "vault": VAULT_PATH,
+        "vault": _get_vault_path(),
         "chunks": chunk_index.total_vectors(),
         "docs": doc_index.total_vectors(),
         "graph_nodes": len(graph),
@@ -146,7 +172,7 @@ async def status():
 
 @app.get("/api/index/status")
 async def index_status():
-    chunk_index = get_chunk_index(INDEX_DIR)
+    chunk_index = get_chunk_index(_get_index_dir())
     return {
         "indexed": chunk_index.total_vectors() > 0,
         "total_vectors": chunk_index.total_vectors(),
@@ -155,15 +181,15 @@ async def index_status():
 
 @app.post("/api/index/build")
 async def build_index():
-    stats = await asyncio.to_thread(build_vault_index, VAULT_PATH, INDEX_DIR)
-    build_fts_index("default", VAULT_PATH)
+    stats = await asyncio.to_thread(build_vault_index, _get_vault_path(), _get_index_dir())
+    build_fts_index("default", _get_vault_path())
     await asyncio.to_thread(_rebuild_link_graph)
     return {"status": "ok", **stats}
 
 
 @app.post("/api/index/reconcile")
 async def reconcile_index():
-    stats = await asyncio.to_thread(reconcile_vault_index, VAULT_PATH, INDEX_DIR)
+    stats = await asyncio.to_thread(reconcile_vault_index, _get_vault_path(), _get_index_dir())
     return {"status": "ok", **stats}
 
 
@@ -208,7 +234,7 @@ async def chat(request: Request):
 
     if not context:
         last_user_msg = next((m["content"] for m in reversed(messages) if m["role"] == "user"), "")
-        sources = await asyncio.to_thread(retrieve_context, last_user_msg, INDEX_DIR, 5, "default")
+        sources = await asyncio.to_thread(retrieve_context, last_user_msg, _get_index_dir(), 5, "default")
         sources_meta = sources
         rag_prompt = build_rag_system_prompt(sources)
         full_system = ""
@@ -283,7 +309,7 @@ async def generate(request: Request):
             except (OSError, UnicodeDecodeError):
                 continue
     elif query:
-        sources = await asyncio.to_thread(retrieve_context, query, INDEX_DIR, 5, "default")
+        sources = await asyncio.to_thread(retrieve_context, query, _get_index_dir(), 5, "default")
     else:
         raise HTTPException(status_code=400, detail="Provide 'sources' (paths) or 'query' (text)")
 
@@ -296,3 +322,85 @@ async def generate(request: Request):
         raise HTTPException(status_code=502, detail=f"Generation failed: {str(e)}")
 
     return {"content": result, "sources": [{"path": s["path"], "title": s["title"]} for s in sources]}
+
+
+# ---------------------------------------------------------------------------
+# Vault management
+# ---------------------------------------------------------------------------
+
+
+@app.get("/api/vaults")
+async def get_vaults():
+    """List all registered vaults with index status."""
+    vaults = list_vaults()
+    active = _get_vault_path()
+    for v in vaults:
+        v["active"] = (v["path"] == active)
+    return vaults
+
+
+@app.post("/api/vaults/add")
+async def add_vault_endpoint(request: Request):
+    """Register a new vault path."""
+    body = await request.json()
+    path = body.get("path", "")
+    name = body.get("name", "")
+
+    if not path:
+        raise HTTPException(status_code=400, detail="'path' is required")
+
+    try:
+        result = add_vault(name, path)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    return result
+
+
+@app.post("/api/vaults/remove")
+async def remove_vault_endpoint(request: Request):
+    """Unregister a vault."""
+    body = await request.json()
+    path = body.get("path", "")
+
+    if not path:
+        raise HTTPException(status_code=400, detail="'path' is required")
+
+    removed = registry_remove_vault(path)
+    if not removed:
+        raise HTTPException(status_code=404, detail="Vault not found in registry")
+    return {"status": "removed", "path": path}
+
+
+@app.post("/api/vault/switch")
+async def switch_vault(request: Request):
+    """Switch active vault — reconciles index, starts watcher."""
+    body = await request.json()
+    path = body.get("path", "")
+
+    if not path:
+        raise HTTPException(status_code=400, detail="'path' is required")
+
+    abs_path = str(Path(path).expanduser().resolve())
+    if not Path(abs_path).is_dir():
+        raise HTTPException(status_code=400, detail=f"Not a valid directory: {abs_path}")
+
+    await _activate_vault(abs_path)
+
+    # Auto-register if not already in registry
+    add_vault("", abs_path)
+
+    return {
+        "status": "ok",
+        "vault": abs_path,
+        "index_dir": _get_index_dir(),
+    }
+
+
+# ---------------------------------------------------------------------------
+# Static file serving — serves the frontend from the project root
+# ---------------------------------------------------------------------------
+
+_PROJECT_ROOT = str(Path(__file__).resolve().parent.parent)
+
+app.mount("/", StaticFiles(directory=_PROJECT_ROOT, html=True), name="static")
