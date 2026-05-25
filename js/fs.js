@@ -17,14 +17,19 @@ export async function pickDirectory() {
 
 const NOTES_FOLDERS = new Set(['wiki', 'notes', 'docs']);
 
-export async function scanDirectory(dirHandle, path = '') {
+export async function scanDirectory(dirHandle, path = '', isNotesRoot = false) {
   const entries = [];
+
+  // Detect if the vault root itself is a notes folder
+  if (path === '' && !isNotesRoot) {
+    isNotesRoot = NOTES_FOLDERS.has(dirHandle.name.toLowerCase());
+  }
 
   for await (const entry of dirHandle.values()) {
     if (entry.name.startsWith('.') || entry.name.toLowerCase() === 'claude.md') continue;
 
-    // At root, only enter wiki/notes/docs folders
-    if (path === '' && entry.kind === 'directory' && !NOTES_FOLDERS.has(entry.name.toLowerCase())) {
+    // At root of a project folder, only enter wiki/notes/docs subfolders
+    if (path === '' && !isNotesRoot && entry.kind === 'directory' && !NOTES_FOLDERS.has(entry.name.toLowerCase())) {
       continue;
     }
 

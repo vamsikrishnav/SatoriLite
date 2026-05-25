@@ -1,4 +1,4 @@
-import { pickDirectory, scanDirectory, setRootHandle } from './fs.js';
+import { pickDirectory, scanDirectory, setRootHandle, getRootHandle } from './fs.js';
 import { getRecentVaults, saveVault, removeVault } from './vault-db.js';
 import { initTree } from './tree.js';
 import { initEditor } from './editor.js';
@@ -34,6 +34,12 @@ export function getVaultTree() {
 
 export function getCurrentVaultName() {
   return currentVaultName;
+}
+
+export async function rescanVault() {
+  const handle = getRootHandle();
+  if (!handle) return;
+  vaultTree = await scanDirectory(handle);
 }
 
 // DOM elements

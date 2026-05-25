@@ -3,7 +3,7 @@
  * Renders vault files/folders with expand/collapse and click-to-open.
  */
 
-import { getVaultTree, getCurrentVaultName } from './app.js';
+import { getVaultTree, getCurrentVaultName, rescanVault } from './app.js';
 import { getRecentVaults } from './vault-db.js';
 
 // Module state
@@ -322,8 +322,9 @@ export function initTree() {
     renderFullTree();
   });
 
-  // Listen for tree-refresh event (for future use)
-  window.addEventListener('satorilite:tree-refresh', () => {
+  // Listen for tree-refresh event — rescan filesystem then re-render
+  window.addEventListener('satorilite:tree-refresh', async () => {
+    await rescanVault();
     renderFullTree();
   });
 }
