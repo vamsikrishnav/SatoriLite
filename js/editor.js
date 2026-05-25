@@ -14,6 +14,10 @@ export function getEditorView() {
   return editorView;
 }
 
+export function getContent() {
+  return editorView ? editorView.state.doc.toString() : '';
+}
+
 export function getCurrentFilePath() {
   return currentFilePath;
 }

@@ -15,35 +15,33 @@ export async function pickDirectory() {
   return handle;
 }
 
+const NOTES_FOLDERS = new Set(['wiki', 'notes', 'docs']);
+
 export async function scanDirectory(dirHandle, path = '') {
   const entries = [];
 
   for await (const entry of dirHandle.values()) {
-    // Skip hidden files, directories starting with '.', and node_modules
-    if (entry.name.startsWith('.') || entry.name === 'node_modules') {
+    if (entry.name.startsWith('.') || entry.name.toLowerCase() === 'claude.md') continue;
+
+    // At root, only enter wiki/notes/docs folders
+    if (path === '' && entry.kind === 'directory' && !NOTES_FOLDERS.has(entry.name.toLowerCase())) {
       continue;
     }
 
     const entryPath = path ? `${path}/${entry.name}` : entry.name;
-    const entryData = {
-      name: entry.name,
-      path: entryPath,
-      kind: entry.kind,
-      handle: entry
-    };
 
     if (entry.kind === 'directory') {
-      entryData.children = await scanDirectory(entry, entryPath);
+      const children = await scanDirectory(entry, entryPath);
+      if (children.length > 0) {
+        entries.push({ name: entry.name, path: entryPath, kind: 'directory', handle: entry, children });
+      }
+    } else if (entry.name.endsWith('.md')) {
+      entries.push({ name: entry.name, path: entryPath, kind: 'file', handle: entry });
     }
-
-    entries.push(entryData);
   }
 
-  // Sort: directories first, then alphabetical by name
   entries.sort((a, b) => {
-    if (a.kind !== b.kind) {
-      return a.kind === 'directory' ? -1 : 1;
-    }
+    if (a.kind !== b.kind) return a.kind === 'directory' ? -1 : 1;
     return a.name.localeCompare(b.name);
   });
 
