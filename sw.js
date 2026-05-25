@@ -1,4 +1,4 @@
-const CACHE_NAME = 'satorilite-v11';
+const CACHE_NAME = 'satorilite-v12';
 const APP_SHELL_FILES = [
   '/',
   '/index.html',
@@ -67,19 +67,36 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Fetch: cache-first strategy
+// Fetch: network-first for pages/JS/CSS, cache-first for fonts/libs
 self.addEventListener('fetch', (event) => {
-  event.respondWith(
-    caches.match(event.request).then((response) => {
-      return response || fetch(event.request).then((fetchResponse) => {
+  const url = new URL(event.request.url);
+  const isAsset = url.pathname.startsWith('/fonts/') || url.pathname.startsWith('/lib/');
+
+  if (isAsset) {
+    // Cache-first for large static assets (fonts, third-party libs)
+    event.respondWith(
+      caches.match(event.request).then((response) => {
+        return response || fetch(event.request).then((fetchResponse) => {
+          return caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, fetchResponse.clone());
+            return fetchResponse;
+          });
+        });
+      }).catch(() => new Response('Offline', { status: 503 }))
+    );
+  } else {
+    // Network-first for app code (JS, CSS, HTML) — always get latest
+    event.respondWith(
+      fetch(event.request).then((fetchResponse) => {
         return caches.open(CACHE_NAME).then((cache) => {
           cache.put(event.request, fetchResponse.clone());
           return fetchResponse;
         });
-      });
-    }).catch(() => {
-      // If both cache and network fail, return offline page (if we had one)
-      return new Response('Offline', { status: 503 });
-    })
-  );
+      }).catch(() => {
+        return caches.match(event.request).then((response) => {
+          return response || new Response('Offline', { status: 503 });
+        });
+      })
+    );
+  }
 });

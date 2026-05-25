@@ -8,6 +8,7 @@ let editorView = null;
 let currentFilePath = null;
 let saveTimer = null;
 let previewTimer = null;
+const scrollPositions = new Map(); // path -> { editor: number, preview: number }
 
 // Exports
 export function getEditorView() {
@@ -210,19 +211,42 @@ export async function openFile(path) {
     const fileHandle = await getFileHandle(path);
     const content = await readFile(fileHandle);
 
+    const preview = document.getElementById('preview-pane');
+
+    // Save scroll position of the file we're leaving
+    if (currentFilePath && currentFilePath !== path) {
+      scrollPositions.set(currentFilePath, {
+        editor: editorView.scrollDOM.scrollTop,
+        preview: preview ? preview.scrollTop : 0,
+      });
+    }
+
     // Replace editor content
     editorView.dispatch({
       changes: {
         from: 0,
         to: editorView.state.doc.length,
         insert: content
-      }
+      },
     });
 
     currentFilePath = path;
 
+    // Restore saved scroll position, or scroll to top for new files
+    const saved = scrollPositions.get(path);
+    if (saved) {
+      editorView.scrollDOM.scrollTop = saved.editor;
+      if (preview) preview.scrollTop = saved.preview;
+    } else {
+      editorView.dispatch({ selection: { anchor: 0 }, scrollIntoView: true });
+      if (preview) preview.scrollTop = 0;
+    }
+
     // Highlight in tree
     setActiveFile(path);
+
+    // Persist for restore on refresh
+    localStorage.setItem('satorilite-last-file', path);
 
     // Dispatch file-loaded event
     window.dispatchEvent(new CustomEvent('satorilite:file-loaded', {

@@ -276,6 +276,21 @@ code, pre, .mono {
   margin-bottom: 28px;
 }
 
+/* Reconnect banner (shown on page refresh) */
+
+.reconnect-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  width: 100%;
+}
+
+.reconnect-btn {
+  font-size: 16px;
+  padding: 12px 24px;
+}
+
 /* Vault list */
 
 .vault-list {

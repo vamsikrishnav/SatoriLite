@@ -45,7 +45,7 @@ let appLayoutEl;
 /**
  * Initialize the app on page load
  */
-function init() {
+async function init() {
   // Get DOM elements
   vaultChooserEl = document.getElementById('vault-chooser');
   vaultListEl = document.getElementById('vault-list');
@@ -57,8 +57,11 @@ function init() {
     return;
   }
 
-  // Render recent vaults
+  // Render recent vaults (needed for vault chooser if auto-reopen fails)
   renderRecentVaults();
+
+  // Try auto-reopen last vault (no user gesture needed if permission persists)
+  await tryAutoReopen();
 
   // Wire "Open Folder" button
   btnOpenFolderEl.addEventListener('click', handleOpenFolder);
@@ -78,6 +81,72 @@ function init() {
       console.error('Failed to switch vault:', err);
     }
   });
+}
+
+/**
+ * Try to auto-reopen the most recently used vault.
+ * If permission persists (same session), opens silently.
+ * If permission needs re-grant (page refresh), shows a one-click reconnect banner.
+ */
+async function tryAutoReopen() {
+  try {
+    const vaults = await getRecentVaults();
+    if (vaults.length === 0) return false;
+
+    const lastVault = vaults[0];
+    const permission = await lastVault.dirHandle.queryPermission({ mode: 'readwrite' });
+
+    if (permission === 'granted') {
+      await openVault(lastVault.name, lastVault.dirHandle);
+      await restoreLastFile();
+      return true;
+    }
+
+    if (permission === 'prompt') {
+      showReconnectBanner(lastVault);
+      return true;
+    }
+
+    return false;
+  } catch {
+    return false;
+  }
+}
+
+function showReconnectBanner(vault) {
+  vaultChooserEl.classList.add('hidden');
+  const banner = document.createElement('div');
+  banner.className = 'reconnect-banner';
+
+  const btn = document.createElement('button');
+  btn.className = 'btn btn-primary reconnect-btn';
+  btn.textContent = `Reopen ${vault.name}`;
+  banner.appendChild(btn);
+
+  document.body.appendChild(banner);
+
+  btn.addEventListener('click', async () => {
+    try {
+      const permission = await vault.dirHandle.requestPermission({ mode: 'readwrite' });
+      if (permission === 'granted') {
+        banner.remove();
+        await openVault(vault.name, vault.dirHandle);
+        await restoreLastFile();
+      }
+    } catch (err) {
+      console.error('Failed to reconnect:', err);
+      banner.remove();
+      vaultChooserEl.classList.remove('hidden');
+    }
+  });
+}
+
+async function restoreLastFile() {
+  const lastFile = localStorage.getItem('satorilite-last-file');
+  if (lastFile) {
+    const { openFile } = await import('./editor.js');
+    await openFile(lastFile);
+  }
 }
 
 /**
