@@ -15,7 +15,7 @@ from server.indexer import (
     build_vault_index, reindex_file, remove_file_from_index,
     get_chunk_index, get_doc_index, reconcile_vault_index, embed_texts,
 )
-from server.rag import retrieve_context, build_rag_system_prompt
+from server.rag import retrieve_context, retrieve_context_all_vaults, build_rag_system_prompt
 from server.fts import build_fts_index, get_fts_index, reset_fts_index, index_file as fts_index_file, remove_from_fts, search_fts
 from server.graph import build_link_graph, save_link_graph, load_link_graph
 from server.watcher import VaultWatcher
@@ -59,7 +59,7 @@ def _read_llms_txt() -> str:
 
 
 async def _activate_vault(vault_path: str):
-    """Switch to a vault: reconcile index, rebuild FTS + graph, start watcher."""
+    """Switch to a vault: load FTS + graph, start watcher. Reconcile in background."""
     global active_vault_path, active_index_dir, vault_watcher
 
     active_vault_path = vault_path
@@ -74,14 +74,7 @@ async def _activate_vault(vault_path: str):
     if not Path(vault_path).is_dir():
         return
 
-    # Reconcile FAISS index
-    try:
-        await asyncio.to_thread(reconcile_vault_index, vault_path, active_index_dir)
-        logger.info("FAISS index reconciled for %s", vault_path)
-    except Exception as e:
-        logger.error("Failed to reconcile FAISS index: %s", e)
-
-    # Build/load FTS
+    # Load FTS (fast — reads from disk)
     reset_fts_index("default")
     fts_idx = get_fts_index("default", index_dir=active_index_dir)
     if not fts_idx.load() or fts_idx.doc_count() == 0:
@@ -95,6 +88,18 @@ async def _activate_vault(vault_path: str):
     vault_watcher = VaultWatcher(event_queue, loop)
     vault_watcher.watch(vault_path)
 
+    # Reconcile FAISS index in background (may call Bedrock for new/changed files)
+    asyncio.create_task(_reconcile_background(vault_path, active_index_dir))
+
+
+async def _reconcile_background(vault_path: str, idx_dir: str):
+    """Run FAISS reconciliation in background so startup isn't blocked."""
+    try:
+        stats = await asyncio.to_thread(reconcile_vault_index, vault_path, idx_dir)
+        logger.info("FAISS reconciled for %s: %s", vault_path, stats)
+    except Exception as e:
+        logger.error("Background reconcile failed for %s: %s", vault_path, e)
+
 
 @app.on_event("startup")
 async def startup():
@@ -105,10 +110,12 @@ async def startup():
         await _activate_vault(active_vault_path)
     else:
         # Auto-activate first registered vault
-        from server.registry import list_vaults
         vaults = list_vaults()
         if vaults:
             await _activate_vault(vaults[0]["path"])
+
+    # Pre-load FTS indices for all registered vaults (enables fan-out search)
+    await asyncio.to_thread(_ensure_all_fts)
 
     asyncio.create_task(_process_events())
 
@@ -117,6 +124,21 @@ async def startup():
 async def shutdown():
     if vault_watcher:
         vault_watcher.stop_all()
+
+
+def _ensure_all_fts():
+    """Load or build FTS indices for all registered vaults."""
+    vaults = list_vaults()
+    for vault in vaults:
+        vault_path = vault["path"]
+        if not vault.get("has_index"):
+            continue
+        vault_name = vault.get("name", Path(vault_path).name)
+        idx_dir = index_dir_for_vault(vault_path)
+        fts_idx = get_fts_index(vault_name, index_dir=idx_dir)
+        if not fts_idx.load() or fts_idx.doc_count() == 0:
+            build_fts_index(vault_name, vault_path, idx_dir)
+            logger.info("FTS built for vault %s (%d docs)", vault_name, fts_idx.doc_count())
 
 
 def _rebuild_link_graph():
@@ -146,11 +168,20 @@ async def _broadcast(message: str):
     ws_clients.difference_update(dead)
 
 
+_pending_paths: dict[str, str] = {}  # path -> latest event_type
+_debounce_task: asyncio.Task | None = None
+_graph_dirty: bool = False
+_graph_rebuild_task: asyncio.Task | None = None
+
+DEBOUNCE_SECONDS = 1.0
+GRAPH_DEBOUNCE_SECONDS = 3.0
+
+
 async def _process_events():
+    global _debounce_task
     while True:
         message = await event_queue.get()
         try:
-            # Broadcast raw file-change event to all WebSocket clients
             await _broadcast(message)
 
             event = json.loads(message)
@@ -160,29 +191,62 @@ async def _process_events():
             if not path.endswith(".md"):
                 continue
 
-            # Notify clients that indexing started
-            await _broadcast(json.dumps({"type": "indexing", "status": "busy", "path": path}))
+            # Coalesce: keep only the latest event per path
+            _pending_paths[path] = event_type
 
-            if event_type in ("created", "modified"):
-                try:
-                    content = Path(path).read_text(encoding="utf-8")
-                    await asyncio.to_thread(reindex_file, _get_index_dir(), path, content)
-                    fts_index_file("default", path, content)
-                    await asyncio.to_thread(_rebuild_link_graph)
-                    logger.info("Reindexed: %s", path)
-                except (OSError, UnicodeDecodeError) as e:
-                    logger.warning("Failed to reindex %s: %s", path, e)
-            elif event_type == "deleted":
-                await asyncio.to_thread(remove_file_from_index, _get_index_dir(), path)
-                remove_from_fts("default", path)
-                await asyncio.to_thread(_rebuild_link_graph)
-                logger.info("Removed from index: %s", path)
-
-            # Notify clients that indexing finished
-            await _broadcast(json.dumps({"type": "indexing", "status": "done", "path": path}))
+            # Reset debounce timer
+            if _debounce_task and not _debounce_task.done():
+                _debounce_task.cancel()
+            _debounce_task = asyncio.create_task(_flush_pending())
 
         except Exception as e:
             logger.warning("Error processing event: %s", e)
+
+
+async def _flush_pending():
+    """Wait for debounce window, then process all coalesced events."""
+    global _graph_dirty, _graph_rebuild_task
+    await asyncio.sleep(DEBOUNCE_SECONDS)
+
+    paths = dict(_pending_paths)
+    _pending_paths.clear()
+
+    if not paths:
+        return
+
+    await _broadcast(json.dumps({"type": "indexing", "status": "busy", "path": ""}))
+
+    for path, event_type in paths.items():
+        try:
+            if event_type in ("created", "modified"):
+                content = Path(path).read_text(encoding="utf-8")
+                changed = await asyncio.to_thread(reindex_file, _get_index_dir(), path, content)
+                if changed:
+                    fts_index_file("default", path, content)
+                    logger.info("Reindexed: %s", path)
+            elif event_type == "deleted":
+                await asyncio.to_thread(remove_file_from_index, _get_index_dir(), path)
+                remove_from_fts("default", path)
+                logger.info("Removed from index: %s", path)
+        except (OSError, UnicodeDecodeError) as e:
+            logger.warning("Failed to process %s: %s", path, e)
+
+    await _broadcast(json.dumps({"type": "indexing", "status": "done", "path": ""}))
+
+    # Debounce graph rebuild separately (expensive)
+    _graph_dirty = True
+    if _graph_rebuild_task and not _graph_rebuild_task.done():
+        _graph_rebuild_task.cancel()
+    _graph_rebuild_task = asyncio.create_task(_debounced_graph_rebuild())
+
+
+async def _debounced_graph_rebuild():
+    """Rebuild link graph after a longer debounce (it scans all files)."""
+    global _graph_dirty
+    await asyncio.sleep(GRAPH_DEBOUNCE_SECONDS)
+    if _graph_dirty:
+        _graph_dirty = False
+        await asyncio.to_thread(_rebuild_link_graph)
 
 
 @app.get("/api/status")
@@ -202,10 +266,18 @@ async def status():
 
 @app.get("/api/index/status")
 async def index_status():
-    chunk_index = get_chunk_index(_get_index_dir())
+    vaults = list_vaults()
+    total = 0
+    vault_count = 0
+    for v in vaults:
+        if v.get("has_index"):
+            idx = get_chunk_index(index_dir_for_vault(v["path"]))
+            total += idx.total_vectors()
+            vault_count += 1
     return {
-        "indexed": chunk_index.total_vectors() > 0,
-        "total_vectors": chunk_index.total_vectors(),
+        "indexed": total > 0,
+        "total_vectors": total,
+        "vault_count": vault_count,
     }
 
 
@@ -243,7 +315,8 @@ async def list_models():
 async def chat(request: Request):
     body = await request.json()
     messages = body.get("messages", [])
-    context = body.get("context", "")
+    file_context = body.get("file_context", "")
+    file_path = body.get("file_path", "")
     model = body.get("model", "")
 
     if not messages:
@@ -262,19 +335,33 @@ async def chat(request: Request):
     sources_meta = []
     llms_txt = _read_llms_txt()
 
-    if not context:
-        last_user_msg = next((m["content"] for m in reversed(messages) if m["role"] == "user"), "")
-        sources = await asyncio.to_thread(retrieve_context, last_user_msg, _get_index_dir(), 5, "default")
-        sources_meta = sources
-        rag_prompt = build_rag_system_prompt(sources)
-        full_system = ""
-        if llms_txt:
-            full_system = llms_txt + "\n\n---\n\n"
-        full_system += rag_prompt
-        system_prompts.append({"text": full_system})
+    # Always do RAG across all indexed vaults
+    last_user_msg = next((m["content"] for m in reversed(messages) if m["role"] == "user"), "")
+    vaults = list_vaults()
+    indexed_vaults = [v for v in vaults if v.get("has_index")]
+    if len(indexed_vaults) > 1:
+        sources = await asyncio.to_thread(
+            retrieve_context_all_vaults, last_user_msg, indexed_vaults, 5,
+            use_hyde=True, use_rerank=True, model_id=None,
+        )
+    elif indexed_vaults:
+        sources = await asyncio.to_thread(
+            retrieve_context, last_user_msg, _get_index_dir(), 5, "default",
+        )
     else:
-        prefix = (llms_txt + "\n\n---\n\n") if llms_txt else ""
-        system_prompts.append({"text": f"{prefix}Context from the user's current note:\n\n{context}"})
+        sources = []
+    sources_meta = sources
+
+    # Build system prompt: llms.txt + RAG sources + current file context
+    rag_prompt = build_rag_system_prompt(sources)
+    parts = []
+    if llms_txt:
+        parts.append(llms_txt)
+    parts.append(rag_prompt)
+    if file_context:
+        filename = Path(file_path).name if file_path else "current file"
+        parts.append(f"The user currently has this file open ({filename}):\n\n{file_context}")
+    system_prompts.append({"text": "\n\n---\n\n".join(parts)})
 
     try:
         client = boto3.client("bedrock-runtime", region_name=AWS_REGION)
@@ -339,7 +426,14 @@ async def generate(request: Request):
             except (OSError, UnicodeDecodeError):
                 continue
     elif query:
-        sources = await asyncio.to_thread(retrieve_context, query, _get_index_dir(), 5, "default")
+        vaults = list_vaults()
+        indexed_vaults = [v for v in vaults if v.get("has_index")]
+        if len(indexed_vaults) > 1:
+            sources = await asyncio.to_thread(
+                retrieve_context_all_vaults, query, indexed_vaults, 5,
+            )
+        else:
+            sources = await asyncio.to_thread(retrieve_context, query, _get_index_dir(), 5, "default")
     else:
         raise HTTPException(status_code=400, detail="Provide 'sources' (paths) or 'query' (text)")
 

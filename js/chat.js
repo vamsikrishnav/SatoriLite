@@ -67,7 +67,7 @@ export function initChat() {
   const textarea = document.createElement('textarea');
   textarea.className = 'chat-textarea';
   textarea.id = 'chat-textarea';
-  textarea.placeholder = 'Ask about your file...';
+  textarea.placeholder = 'Ask anything…';
   textarea.rows = 1;
 
   const sendBtn = document.createElement('button');
@@ -116,89 +116,17 @@ export function initChat() {
   indexBar.appendChild(indexStatus);
   indexBar.appendChild(indexBtn);
 
-  // Context mode selector
-  const modeBar = document.createElement('div');
-  modeBar.className = 'chat-mode-bar';
-
-  const modeLabel = document.createElement('span');
-  modeLabel.className = 'chat-mode-label';
-  modeLabel.textContent = 'Context:';
-
-  const modeSelect = document.createElement('select');
-  modeSelect.className = 'chat-mode-select';
-  modeSelect.id = 'chat-mode-select';
-
-  const modeFile = document.createElement('option');
-  modeFile.value = 'file';
-  modeFile.textContent = 'Current file';
-
-  const modeVault = document.createElement('option');
-  modeVault.value = 'vault';
-  modeVault.textContent = 'Search vault';
-
-  modeSelect.appendChild(modeFile);
-  modeSelect.appendChild(modeVault);
-  modeBar.appendChild(modeLabel);
-  modeBar.appendChild(modeSelect);
-
-  modeSelect.addEventListener('change', () => {
-    const ta = document.getElementById('chat-textarea');
-    if (ta) {
-      ta.placeholder = modeSelect.value === 'vault' ? 'Ask about your vault…' : 'Ask about your file…';
-    }
-  });
-
-  // Vault picker
-  const vaultBar = document.createElement('div');
-  vaultBar.className = 'chat-vault-bar';
-
-  const vaultLabel = document.createElement('span');
-  vaultLabel.className = 'chat-vault-label';
-  vaultLabel.textContent = 'Vault:';
-
-  const vaultSelect = document.createElement('select');
-  vaultSelect.className = 'chat-vault-select';
-  vaultSelect.id = 'chat-vault-select';
-
-  const vaultDefaultOpt = document.createElement('option');
-  vaultDefaultOpt.value = '';
-  vaultDefaultOpt.textContent = 'Loading…';
-  vaultSelect.appendChild(vaultDefaultOpt);
-
-  let vaultSwitching = false;
-  vaultSelect.addEventListener('change', () => {
-    if (vaultSelect.value && !vaultSwitching) {
-      vaultSwitching = true;
-      switchVault(vaultSelect.value).finally(() => { vaultSwitching = false; });
-    }
-  });
-
-  const addVaultBtn = document.createElement('button');
-  addVaultBtn.className = 'chat-add-vault-btn';
-  addVaultBtn.textContent = '+';
-  addVaultBtn.title = 'Add vault by path';
-  addVaultBtn.addEventListener('click', () => {
-    const path = prompt('Enter full vault path (e.g. ~/projects/my-notes):');
-    if (path && path.trim()) addVault(path.trim());
-  });
-
-  vaultBar.appendChild(vaultLabel);
-  vaultBar.appendChild(vaultSelect);
-  vaultBar.appendChild(addVaultBtn);
 
   // Assemble panel
   panel.appendChild(header);
-  panel.appendChild(vaultBar);
   panel.appendChild(modelBar);
   panel.appendChild(indexBar);
-  panel.appendChild(modeBar);
   panel.appendChild(messagesArea);
   panel.appendChild(inputArea);
   chatContainer.appendChild(panel);
 
-  // Load models and vaults
+  // Load models
   loadModels();
-  loadVaults();
 
   // Event handlers
   closeBtn.addEventListener('click', () => toggleChat(false));
@@ -294,20 +222,13 @@ async function sendMessage() {
   renderMessages();
   scrollToBottom();
 
-  // Prepare request payload
-  const modeSelect = document.getElementById('chat-mode-select');
-  const mode = modeSelect ? modeSelect.value : 'file';
-
+  // Prepare request payload — always send current file + let server do RAG
   const payload = {
     messages: messages.map(m => ({ role: m.role, content: m.content })),
     model: selectedModel,
+    file_context: getContent() || '',
+    file_path: getCurrentFilePath() || '',
   };
-
-  if (mode === 'vault') {
-    // Vault mode — server uses RAG (no vault name needed)
-  } else {
-    payload.context = getContent() || '';
-  }
 
   // Show loading indicator
   isStreaming = true;
@@ -511,7 +432,8 @@ async function checkIndexStatus() {
     const resp = await fetch(`${SERVER_URL}/api/index/status`);
     const data = await resp.json();
     if (data.indexed) {
-      statusEl.textContent = `Index: ${data.total_vectors} chunks`;
+      const vaults = data.vault_count > 1 ? ` across ${data.vault_count} vaults` : '';
+      statusEl.textContent = `Index: ${data.total_vectors} chunks${vaults}`;
       statusEl.classList.add('indexed');
     } else {
       statusEl.textContent = 'Index: not built';
@@ -584,87 +506,3 @@ async function loadModels() {
 }
 
 
-async function loadVaults() {
-  const select = document.getElementById('chat-vault-select');
-  if (!select) return;
-
-  try {
-    const resp = await fetch(`${SERVER_URL}/api/vaults`);
-    if (!resp.ok) throw new Error(`${resp.status}`);
-    const vaults = await resp.json();
-
-    select.textContent = '';
-
-    if (vaults.length === 0) {
-      const opt = document.createElement('option');
-      opt.value = '';
-      opt.textContent = 'No vaults registered';
-      select.appendChild(opt);
-      return;
-    }
-
-    for (const vault of vaults) {
-      const opt = document.createElement('option');
-      opt.value = vault.path;
-      opt.textContent = `${vault.name} (${vault.md_files} files)`;
-      if (vault.active) opt.selected = true;
-      select.appendChild(opt);
-    }
-  } catch (err) {
-    console.error('[chat] failed to load vaults:', err);
-    select.textContent = '';
-    const opt = document.createElement('option');
-    opt.value = '';
-    opt.textContent = 'Server offline';
-    select.appendChild(opt);
-  }
-}
-
-
-async function switchVault(path) {
-  const statusEl = document.getElementById('chat-index-status');
-  if (statusEl) statusEl.textContent = 'Switching vault…';
-
-  try {
-    const resp = await fetch(`${SERVER_URL}/api/vault/switch`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ path }),
-    });
-
-    if (!resp.ok) {
-      const err = await resp.json();
-      throw new Error(err.detail || `${resp.status}`);
-    }
-
-    await loadVaults();
-    checkIndexStatus();
-  } catch (err) {
-    console.error('[chat] failed to switch vault:', err);
-    if (statusEl) statusEl.textContent = 'Switch failed';
-  }
-}
-
-
-async function addVault(path) {
-  const statusEl = document.getElementById('chat-index-status');
-  if (statusEl) statusEl.textContent = 'Adding vault…';
-
-  try {
-    const resp = await fetch(`${SERVER_URL}/api/vaults/add`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ path }),
-    });
-
-    if (!resp.ok) {
-      const err = await resp.json();
-      throw new Error(err.detail || `${resp.status}`);
-    }
-
-    await switchVault(path);
-  } catch (err) {
-    console.error('[chat] failed to add vault:', err);
-    if (statusEl) statusEl.textContent = `Add failed: ${err.message}`;
-  }
-}

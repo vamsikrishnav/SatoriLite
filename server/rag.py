@@ -272,6 +272,130 @@ def retrieve_context(query: str, index_dir: str, k: int = 5,
     return candidates[:k]
 
 
+def retrieve_context_all_vaults(query: str, vaults: list[dict], k: int = 5,
+                                use_hyde: bool = True,
+                                use_rerank: bool = True,
+                                model_id: str | None = None) -> list[dict]:
+    """Fan-out retrieval across all registered vaults, fused via RRF.
+
+    Each vault with an index is searched independently (FAISS + FTS),
+    results are merged with RRF, then re-ranked as a single list.
+    """
+    from server.config import index_dir_for_vault
+
+    read_cache: dict[str, str | None] = {}
+
+    # Step 1: HyDE — shared across all vaults (one LLM call)
+    hyde_doc = None
+    if use_hyde:
+        hyde_doc = _generate_hyde_doc(query, model_id=model_id)
+
+    embed_text = hyde_doc if hyde_doc else query
+    query_vector = embed_texts([embed_text])
+    raw_query_vector = embed_texts([query]) if hyde_doc else query_vector
+
+    # Step 2: Fan-out search across all vaults
+    all_ranked_lists = []
+
+    for vault in vaults:
+        vault_path = vault["path"]
+        if not vault.get("has_index"):
+            continue
+        index_dir = index_dir_for_vault(vault_path)
+        vault_name = vault.get("name", Path(vault_path).name)
+
+        # Semantic search (chunk + doc level)
+        chunk_index = get_chunk_index(index_dir)
+        vault_semantic = []
+        if chunk_index.total_vectors() > 0:
+            hyde_results = chunk_index.search(query_vector, k=k * 2)
+            if hyde_doc:
+                raw_results = chunk_index.search(raw_query_vector, k=k)
+                vault_semantic = _rrf_fuse([hyde_results, raw_results])[:k * 2]
+            else:
+                vault_semantic = hyde_results
+
+        doc_index = get_doc_index(index_dir)
+        if doc_index.total_vectors() > 0:
+            doc_results = doc_index.search(raw_query_vector, k=3)
+            seen_paths = {r["path"] for r in vault_semantic}
+            for doc in doc_results:
+                if doc["path"] in seen_paths:
+                    continue
+                content = _read_file_cached(doc["path"], read_cache)
+                if content is None:
+                    continue
+                chunks = chunk_markdown(content, file_path=doc["path"])
+                if chunks:
+                    best = max(chunks, key=lambda c: len(c["text"]))
+                    best["score"] = doc["score"]
+                    vault_semantic.append(best)
+
+        if vault_semantic:
+            all_ranked_lists.append(vault_semantic)
+
+        # BM25 keyword search
+        bm25_raw = search_fts(vault_name, query, limit=k * 2)
+        if bm25_raw:
+            bm25_results = [{
+                "path": r["path"],
+                "title": r["title"],
+                "breadcrumb": "",
+                "start_line": 1,
+                "end_line": 1,
+                "text": r.get("snippet", ""),
+                "score": r["score"],
+            } for r in bm25_raw]
+            all_ranked_lists.append(bm25_results)
+
+        # Graph expansion per vault
+        link_graph = load_link_graph(index_dir)
+        if link_graph and vault_semantic:
+            entry_paths = list({r["path"] for r in vault_semantic[:k]})
+            expanded = expand_from_entry_points(entry_paths, link_graph)
+            graph_results = []
+            for path, distance in sorted(expanded.items(), key=lambda x: x[1]):
+                if distance == 0:
+                    continue
+                weight = GRAPH_HOP_WEIGHTS.get(distance, 0.3)
+                graph_results.append({
+                    "path": path,
+                    "title": Path(path).stem,
+                    "breadcrumb": "",
+                    "start_line": 1,
+                    "end_line": 1,
+                    "text": "",
+                    "score": weight,
+                })
+            if graph_results:
+                all_ranked_lists.append(graph_results)
+
+    if not all_ranked_lists:
+        return []
+
+    # Step 3: Global RRF fusion
+    fused = _rrf_fuse(all_ranked_lists)
+    candidates = fused[:k * 2]
+
+    # Enrich with fresh file content
+    for result in candidates:
+        content = _read_file_cached(result["path"], read_cache)
+        if content is None:
+            continue
+        lines = content.split("\n")
+        start = max(0, result.get("start_line", 1) - 1)
+        end = min(len(lines), result.get("end_line", len(lines)))
+        fresh_text = "\n".join(lines[start:end]).strip()
+        if fresh_text:
+            result["text"] = fresh_text
+
+    # Step 4: LLM re-ranking on merged results
+    if use_rerank and len(candidates) > 1:
+        return _rerank(query, candidates, top_k=k, model_id=model_id)
+
+    return candidates[:k]
+
+
 def build_rag_system_prompt(sources: list[dict]) -> str:
     """Build a system prompt that instructs Claude to answer from sources with citations."""
     if not sources:

@@ -419,8 +419,8 @@ def _content_hash(content: str) -> str:
     return hashlib.sha256(content.encode()).hexdigest()[:16]
 
 
-def reindex_file(index_dir: str, file_path: str, content: str) -> None:
-    """Re-index a single file in both chunk and document indices."""
+def reindex_file(index_dir: str, file_path: str, content: str) -> bool:
+    """Re-index a single file in both chunk and document indices. Returns True if content changed."""
     chunk_index = get_chunk_index(index_dir)
 
     # Check if content has changed via hash
@@ -431,7 +431,7 @@ def reindex_file(index_dir: str, file_path: str, content: str) -> None:
         if meta["path"] == file_path
     }
     if existing_hashes and all(h == new_hash for h in existing_hashes):
-        return
+        return False
 
     # Update chunk index
     chunk_index.remove_by_path(file_path)
@@ -450,6 +450,7 @@ def reindex_file(index_dir: str, file_path: str, content: str) -> None:
     doc_vector = embed_texts([content])
     doc_index.add(file_path, new_hash, doc_vector[0])
     doc_index.save()
+    return True
 
 
 def remove_file_from_index(index_dir: str, file_path: str) -> None:
