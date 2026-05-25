@@ -56,7 +56,7 @@ def _rrf_fuse(ranked_lists: list[list[dict]], key: str = "path", k: int = RRF_K)
     return fused
 
 
-def _generate_hyde_doc(query: str) -> str | None:
+def _generate_hyde_doc(query: str, model_id: str | None = None) -> str | None:
     """Generate a hypothetical document for HyDE (Hypothetical Document Embeddings).
 
     Asks the LLM to write a short passage that would answer the query, then
@@ -65,7 +65,7 @@ def _generate_hyde_doc(query: str) -> str | None:
     try:
         client = boto3.client("bedrock-runtime", region_name=AWS_REGION)
         response = client.converse(
-            modelId=BEDROCK_MODEL_ID,
+            modelId=model_id or BEDROCK_MODEL_ID,
             messages=[{
                 "role": "user",
                 "content": [{"text": (
@@ -84,7 +84,7 @@ def _generate_hyde_doc(query: str) -> str | None:
         return None
 
 
-def _rerank(query: str, candidates: list[dict], top_k: int = 5) -> list[dict]:
+def _rerank(query: str, candidates: list[dict], top_k: int = 5, model_id: str | None = None) -> list[dict]:
     """Re-rank candidates using the LLM as a cross-encoder judge.
 
     Sends the query and candidate texts to the LLM, asks it to rank by relevance.
@@ -107,7 +107,7 @@ def _rerank(query: str, candidates: list[dict], top_k: int = 5) -> list[dict]:
     try:
         client = boto3.client("bedrock-runtime", region_name=AWS_REGION)
         response = client.converse(
-            modelId=BEDROCK_MODEL_ID,
+            modelId=model_id or BEDROCK_MODEL_ID,
             messages=[{
                 "role": "user",
                 "content": [{"text": (
@@ -146,7 +146,8 @@ def _rerank(query: str, candidates: list[dict], top_k: int = 5) -> list[dict]:
 def retrieve_context(query: str, index_dir: str, k: int = 5,
                      vault_name: str | None = None,
                      use_hyde: bool = True,
-                     use_rerank: bool = True) -> list[dict]:
+                     use_rerank: bool = True,
+                     model_id: str | None = None) -> list[dict]:
     """Multi-signal retrieval with RRF fusion, HyDE, and LLM re-ranking.
 
     Pipeline:
@@ -162,7 +163,7 @@ def retrieve_context(query: str, index_dir: str, k: int = 5,
     # Step 1: HyDE — generate hypothetical document for embedding
     hyde_doc = None
     if use_hyde:
-        hyde_doc = _generate_hyde_doc(query)
+        hyde_doc = _generate_hyde_doc(query, model_id=model_id)
 
     embed_text = hyde_doc if hyde_doc else query
     query_vector = embed_texts([embed_text])
@@ -266,7 +267,7 @@ def retrieve_context(query: str, index_dir: str, k: int = 5,
 
     # Step 5: LLM re-ranking
     if use_rerank and len(candidates) > 1:
-        return _rerank(query, candidates, top_k=k)
+        return _rerank(query, candidates, top_k=k, model_id=model_id)
 
     return candidates[:k]
 
