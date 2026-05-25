@@ -25,7 +25,8 @@ BM25_B = 0.75
 # AWS
 AWS_REGION = os.environ.get("AWS_REGION", "us-east-1")
 BEDROCK_EMBED_MODEL = os.environ.get("BEDROCK_EMBED_MODEL", "amazon.titan-embed-text-v2:0")
-BEDROCK_MODEL_ID = os.environ.get("BEDROCK_MODEL_ID", "anthropic.claude-3-5-sonnet-20241022-v2:0")
+BEDROCK_MODEL_ID = os.environ.get("BEDROCK_MODEL_ID", "us.anthropic.claude-opus-4-6-v1")
+BEDROCK_RAG_MODEL_ID = os.environ.get("BEDROCK_RAG_MODEL_ID", "us.anthropic.claude-haiku-4-5-20251001-v1:0")
 
 # Server
 PORT = int(os.environ.get("SATORILITE_PORT", "8000"))

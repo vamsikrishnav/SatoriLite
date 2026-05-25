@@ -256,7 +256,7 @@ async def chat(request: Request):
 
     if not context:
         last_user_msg = next((m["content"] for m in reversed(messages) if m["role"] == "user"), "")
-        sources = await asyncio.to_thread(retrieve_context, last_user_msg, _get_index_dir(), 5, "default", model_id=model_id)
+        sources = await asyncio.to_thread(retrieve_context, last_user_msg, _get_index_dir(), 5, "default")
         sources_meta = sources
         rag_prompt = build_rag_system_prompt(sources)
         full_system = ""

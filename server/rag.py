@@ -6,7 +6,7 @@ from pathlib import Path
 
 import boto3
 
-from server.config import RRF_K, AWS_REGION, BEDROCK_MODEL_ID, INDEX_DIR, GRAPH_HOP_WEIGHTS
+from server.config import RRF_K, AWS_REGION, BEDROCK_MODEL_ID, BEDROCK_RAG_MODEL_ID, INDEX_DIR, GRAPH_HOP_WEIGHTS
 from server.indexer import chunk_markdown, embed_texts, get_chunk_index, get_doc_index
 from server.fts import search_fts
 from server.graph import load_link_graph, expand_from_entry_points
@@ -65,7 +65,7 @@ def _generate_hyde_doc(query: str, model_id: str | None = None) -> str | None:
     try:
         client = boto3.client("bedrock-runtime", region_name=AWS_REGION)
         response = client.converse(
-            modelId=model_id or BEDROCK_MODEL_ID,
+            modelId=model_id or BEDROCK_RAG_MODEL_ID,
             messages=[{
                 "role": "user",
                 "content": [{"text": (
@@ -107,7 +107,7 @@ def _rerank(query: str, candidates: list[dict], top_k: int = 5, model_id: str | 
     try:
         client = boto3.client("bedrock-runtime", region_name=AWS_REGION)
         response = client.converse(
-            modelId=model_id or BEDROCK_MODEL_ID,
+            modelId=model_id or BEDROCK_RAG_MODEL_ID,
             messages=[{
                 "role": "user",
                 "content": [{"text": (
