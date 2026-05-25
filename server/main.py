@@ -16,7 +16,7 @@ from server.indexer import (
     get_chunk_index, get_doc_index, reconcile_vault_index, embed_texts,
 )
 from server.rag import retrieve_context, build_rag_system_prompt
-from server.fts import build_fts_index, get_fts_index, index_file as fts_index_file, remove_from_fts, search_fts
+from server.fts import build_fts_index, get_fts_index, reset_fts_index, index_file as fts_index_file, remove_from_fts, search_fts
 from server.graph import build_link_graph, save_link_graph, load_link_graph
 from server.watcher import VaultWatcher
 from server.generate import generate_structured_output, PROMPT_BUILDERS
@@ -82,9 +82,10 @@ async def _activate_vault(vault_path: str):
         logger.error("Failed to reconcile FAISS index: %s", e)
 
     # Build/load FTS
-    fts_idx = get_fts_index("default")
+    reset_fts_index("default")
+    fts_idx = get_fts_index("default", index_dir=active_index_dir)
     if not fts_idx.load() or fts_idx.doc_count() == 0:
-        await asyncio.to_thread(build_fts_index, "default", vault_path)
+        await asyncio.to_thread(build_fts_index, "default", vault_path, active_index_dir)
 
     # Build link graph
     await asyncio.to_thread(_rebuild_link_graph)
@@ -97,10 +98,17 @@ async def _activate_vault(vault_path: str):
 
 @app.on_event("startup")
 async def startup():
+    global active_vault_path
     Path(active_index_dir).mkdir(parents=True, exist_ok=True)
 
     if Path(active_vault_path).is_dir() and active_vault_path != ".":
         await _activate_vault(active_vault_path)
+    else:
+        # Auto-activate first registered vault
+        from server.registry import list_vaults
+        vaults = list_vaults()
+        if vaults:
+            await _activate_vault(vaults[0]["path"])
 
     asyncio.create_task(_process_events())
 

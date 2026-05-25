@@ -208,20 +208,20 @@ class FTSIndex:
 _vault_indices: dict[str, FTSIndex] = {}
 
 
-def _fts_index_dir(vault_name: str) -> str:
-    """Return the storage directory for the FTS index."""
-    return INDEX_DIR
-
-
-def get_fts_index(vault_name: str) -> FTSIndex:
+def get_fts_index(vault_name: str, index_dir: str | None = None) -> FTSIndex:
     if vault_name not in _vault_indices:
-        _vault_indices[vault_name] = FTSIndex(index_dir=_fts_index_dir(vault_name))
+        _vault_indices[vault_name] = FTSIndex(index_dir=index_dir or INDEX_DIR)
     return _vault_indices[vault_name]
 
 
-def build_fts_index(vault_name: str, vault_path: str) -> int:
+def reset_fts_index(vault_name: str) -> None:
+    """Clear the cached FTS index for a vault (call on vault switch)."""
+    _vault_indices.pop(vault_name, None)
+
+
+def build_fts_index(vault_name: str, vault_path: str, index_dir: str | None = None) -> int:
     """Scan vault and build the FTS index. Returns number of documents indexed."""
-    index_dir = _fts_index_dir(vault_name)
+    index_dir = index_dir or INDEX_DIR
     index = FTSIndex(index_dir=index_dir)
     vault = Path(vault_path)
 
