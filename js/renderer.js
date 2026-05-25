@@ -138,7 +138,8 @@ function escapeHtml(str) {
   return str
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
 }
 
 function normalizePath(path) {
@@ -165,9 +166,9 @@ function createRendererOverrides() {
     code({ text, lang }) {
       const langStr = lang || '';
 
-      // Mermaid blocks — wrap in placeholder div for lazy rendering
+      // Mermaid blocks — textContent will unescape for rendering
       if (langStr === 'mermaid') {
-        return `<div class="mermaid-block" data-mermaid-source="${escapeHtml(text)}">${escapeHtml(text)}</div>`;
+        return `<div class="mermaid-block">${escapeHtml(text)}</div>`;
       }
 
       // Standard code blocks with toolbar (lang tag + copy button)
@@ -318,30 +319,51 @@ async function processKaTeX(container) {
  * Lazy-loads mermaid — fails silently if not available.
  * @param {HTMLElement} container - The preview pane element
  */
-async function processMermaid(container) {
-  const blocks = container.querySelectorAll('.mermaid-block[data-mermaid-source]');
-  if (blocks.length === 0) return;
+let mermaidLib = null;
+let mermaidId = 0;
 
-  let mermaid;
-  try {
-    const mod = await import('/lib/mermaid.esm.min.js');
-    mermaid = mod.default || mod;
-  } catch {
-    // Mermaid not available yet — leave blocks as raw text
-    return;
+async function initMermaid() {
+  if (mermaidLib) return true;
+  if (globalThis.mermaid) {
+    mermaidLib = globalThis.mermaid;
+    mermaidLib.initialize({ startOnLoad: false, theme: 'dark' });
+    return true;
   }
+  try {
+    await new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = '/lib/mermaid.min.js';
+      script.onload = resolve;
+      script.onerror = reject;
+      document.head.appendChild(script);
+    });
+    mermaidLib = globalThis.mermaid;
+    if (!mermaidLib) return false;
+    mermaidLib.initialize({ startOnLoad: false, theme: 'dark' });
+    return true;
+  } catch {
+    return false;
+  }
+}
 
-  mermaid.initialize({ startOnLoad: false, theme: 'dark' });
+async function processMermaid(container) {
+  const blocks = container.querySelectorAll('.mermaid-block:not(.mermaid-rendered)');
+  if (blocks.length === 0) return;
+  if (!await initMermaid()) return;
 
   for (const block of blocks) {
-    const source = block.getAttribute('data-mermaid-source');
+    const code = block.textContent;
+    const id = `mermaid-${++mermaidId}`;
     try {
-      const id = `mermaid-${Math.random().toString(36).slice(2, 10)}`;
-      const { svg } = await mermaid.render(id, source);
-      block.innerHTML = svg;
-      block.removeAttribute('data-mermaid-source');
-    } catch {
-      // Failed to render — leave raw text visible
+      const { svg } = await mermaidLib.render(id, code);
+      const tmpl = document.createElement('template');
+      tmpl.innerHTML = svg;
+      block.textContent = '';
+      block.appendChild(tmpl.content);
+      block.classList.add('mermaid-rendered');
+    } catch (err) {
+      block.textContent = `Mermaid error: ${err.message}`;
+      block.classList.add('mermaid-error');
     }
   }
 }

@@ -1491,6 +1491,7 @@ code, pre, .mono {
   background: var(--bg-surface0);
   border-radius: var(--radius);
   text-align: center;
+  overflow-x: auto;
 }
 
 .preview-pane .math-block {

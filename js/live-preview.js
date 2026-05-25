@@ -6,9 +6,21 @@ let mermaidSeq = 0;
 
 async function loadMermaid() {
   if (mermaidLib) return mermaidLib;
+  if (globalThis.mermaid) {
+    mermaidLib = globalThis.mermaid;
+    mermaidLib.initialize({ startOnLoad: false, theme: 'dark' });
+    return mermaidLib;
+  }
   try {
-    const mod = await import('/lib/mermaid.esm.min.js');
-    mermaidLib = mod.default || mod;
+    await new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = '/lib/mermaid.min.js';
+      script.onload = resolve;
+      script.onerror = reject;
+      document.head.appendChild(script);
+    });
+    mermaidLib = globalThis.mermaid;
+    if (!mermaidLib) return null;
     mermaidLib.initialize({ startOnLoad: false, theme: 'dark' });
     return mermaidLib;
   } catch {
