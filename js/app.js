@@ -267,6 +267,13 @@ async function openVault(name, dirHandle) {
     // Save to IndexedDB
     await saveVault(name, dirHandle);
 
+    // Tell server which vault is active (for AI chat context)
+    fetch('/api/vault/switch', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name })
+    }).catch(() => {});
+
     // Scan the directory
     vaultTree = await scanDirectory(dirHandle);
 

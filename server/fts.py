@@ -225,9 +225,10 @@ def build_fts_index(vault_name: str, vault_path: str, index_dir: str | None = No
     index = FTSIndex(index_dir=index_dir)
     vault = Path(vault_path)
 
+    _skip_dirs = {"node_modules", "__pycache__", ".git", "vendor", "dist"}
     for md_file in vault.rglob("*.md"):
         parts = md_file.relative_to(vault).parts
-        if any(p.startswith(".") for p in parts):
+        if any(p.startswith(".") or p in _skip_dirs for p in parts):
             continue
         try:
             content = md_file.read_text(encoding="utf-8")

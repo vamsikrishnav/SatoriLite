@@ -205,24 +205,37 @@ async def chat(request: Request):
     async def event_generator():
         # -------------------------------------------------------------------
         # Phase 1: Deterministic parallel pre-fetch (no LLM, ~50ms)
-        # Stream progress events as each step completes
+        # Search ALL registered vaults, not just the active one
         # -------------------------------------------------------------------
-        yield f"data: {json.dumps({'type': 'progress', 'tool': 'search', 'input': {'status': 'Searching vault...'}})}\n\n"
+        yield f"data: {json.dumps({'type': 'progress', 'tool': 'Search', 'input': {'detail': 'querying all vaults'}})}\n\n"
+
+        all_vaults = list_vaults()
+        all_vault_paths = [v["path"] for v in all_vaults if Path(v["path"]).is_dir()]
 
         def _prefetch_search():
-            return search_fts(vault_name, last_user_msg, limit=5)
+            results = []
+            for v in all_vaults:
+                if not Path(v["path"]).is_dir():
+                    continue
+                vname = v.get("name", Path(v["path"]).name)
+                results.extend(search_fts(vname, last_user_msg, limit=3))
+            return results
 
         def _prefetch_grep():
             words = last_user_msg.lower().split()
             pattern = " ".join(words[:4]) if len(words) >= 2 else last_user_msg
-            try:
-                result = subprocess.run(
-                    ["grep", "-rin", "--include=*.md", "-l", pattern, vault_path],
-                    capture_output=True, text=True, timeout=5,
-                )
-                return [p.strip() for p in result.stdout.strip().split("\n") if p.strip()][:10]
-            except (subprocess.TimeoutExpired, OSError):
-                return []
+            paths = []
+            for vp in all_vault_paths:
+                try:
+                    result = subprocess.run(
+                        ["grep", "-rin", "--include=*.md", "--exclude-dir=node_modules",
+                         "--exclude-dir=.satorilite", "-l", pattern, vp],
+                        capture_output=True, text=True, timeout=5,
+                    )
+                    paths.extend([p.strip() for p in result.stdout.strip().split("\n") if p.strip()])
+                except (subprocess.TimeoutExpired, OSError):
+                    pass
+            return paths[:10]
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=2) as pool:
             search_future = pool.submit(_prefetch_search)
@@ -230,7 +243,7 @@ async def chat(request: Request):
             search_results = search_future.result()
             grep_paths = grep_future.result()
 
-        # Merge results
+        # Merge results — active vault gets priority
         seen_paths = set()
         ranked_paths = []
         for r in search_results:
@@ -242,7 +255,7 @@ async def chat(request: Request):
                 seen_paths.add(p)
                 ranked_paths.append(p)
 
-        yield f"data: {json.dumps({'type': 'progress', 'tool': 'grep', 'input': {'status': f'Found {len(ranked_paths)} relevant files'}})}\n\n"
+        yield f"data: {json.dumps({'type': 'progress', 'tool': 'Grep', 'input': {'detail': f'{len(ranked_paths)} relevant files'}})}\n\n"
 
         # Read top files in parallel
         def _read_file(path, max_lines=200):
@@ -263,12 +276,14 @@ async def chat(request: Request):
                     file_contents[path] = content
 
         for path in file_contents:
-            rel_path = path.replace(vault_path + "/", "")
+            rel_path = path
+            for vp in all_vault_paths:
+                rel_path = rel_path.replace(vp + "/", "")
             filename = rel_path.split("/")[-1].replace(".md", "").replace("-", " ")
             filename = re.sub(r"^\d+\s*", "", filename).strip().title()
-            yield f"data: {json.dumps({'type': 'progress', 'tool': 'read', 'input': {'status': f'Reading: {filename}'}})}\n\n"
+            yield f"data: {json.dumps({'type': 'progress', 'tool': 'Read', 'input': {'detail': filename}})}\n\n"
 
-        yield f"data: {json.dumps({'type': 'progress', 'tool': 'think', 'input': {'status': 'Synthesizing answer...'}})}\n\n"
+        yield f"data: {json.dumps({'type': 'progress', 'tool': 'Think', 'input': {'detail': 'synthesizing answer'}})}\n\n"
 
         # -------------------------------------------------------------------
         # Phase 2: Build system prompt with pre-loaded content
@@ -383,7 +398,6 @@ async def chat(request: Request):
                         tool_input = tool_use["input"]
                         tool_id = tool_use["toolUseId"]
 
-                        yield f"data: {json.dumps({'type': 'progress', 'tool': tool_name, 'input': tool_input})}\n\n"
 
                         result = await asyncio.to_thread(
                             execute_tool, tool_name, tool_input, vault_path, vault_name
@@ -539,12 +553,22 @@ async def remove_vault_endpoint(request: Request):
 
 @app.post("/api/vault/switch")
 async def switch_vault(request: Request):
-    """Switch active vault — loads FTS, starts watcher."""
+    """Switch active vault — loads FTS, starts watcher. Accepts path or name."""
     body = await request.json()
     path = body.get("path", "")
+    name = body.get("name", "")
+
+    if not path and name:
+        vaults = list_vaults()
+        match = next(
+            (v for v in vaults if v["name"] == name or Path(v["path"]).name == name),
+            None
+        )
+        if match:
+            path = match["path"]
 
     if not path:
-        raise HTTPException(status_code=400, detail="'path' is required")
+        raise HTTPException(status_code=400, detail="'path' or 'name' is required")
 
     abs_path = str(Path(path).expanduser().resolve())
     if not Path(abs_path).is_dir():

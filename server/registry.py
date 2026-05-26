@@ -79,15 +79,19 @@ _ACTIVE_FILE = REGISTRY_DIR / "active_vault"
 
 
 def get_last_active_vault() -> str | None:
-    """Return the path of the last active vault, or None."""
+    """Return the path of the last active vault, or None. Only returns registered vaults."""
     if _ACTIVE_FILE.exists():
         path = _ACTIVE_FILE.read_text(encoding="utf-8").strip()
         if path and Path(path).is_dir():
-            return path
+            registered = {v["path"] for v in list_vaults()}
+            if path in registered:
+                return path
     return None
 
 
 def set_last_active_vault(vault_path: str) -> None:
-    """Persist the currently active vault path."""
+    """Persist the currently active vault path (only if registered)."""
     _ensure_registry()
-    _ACTIVE_FILE.write_text(vault_path, encoding="utf-8")
+    registered = {v["path"] for v in list_vaults()}
+    if vault_path in registered:
+        _ACTIVE_FILE.write_text(vault_path, encoding="utf-8")

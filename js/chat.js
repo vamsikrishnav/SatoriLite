@@ -438,18 +438,41 @@ function updateProgress(tool, input) {
   if (!progressEl) {
     progressEl = document.createElement('div');
     progressEl.className = 'chat-progress';
-    container.appendChild(progressEl);
+    // Insert before the last AI message (which is the empty one waiting for response)
+    const aiMessages = container.querySelectorAll('.chat-message-ai');
+    const lastAi = aiMessages[aiMessages.length - 1];
+    if (lastAi) {
+      container.insertBefore(progressEl, lastAi);
+    } else {
+      container.appendChild(progressEl);
+    }
   }
-  const label = input.status || {
-    search: `Searching: "${input.query || ''}"`,
-    grep: `Found ${input.matches || ''} matching files`,
-    find: `Finding files: "${input.pattern || ''}"`,
-    read: `Reading: ${input.path ? input.path.split('/').pop() : ''}`,
-  }[tool] || `Using ${tool}...`;
 
-  // Stack progress lines instead of replacing
+  // Mark previous lines: checkmark → slide left + blur → collapse
+  const prevLines = progressEl.querySelectorAll('div:not(.completed):not(.completing):not(.sliding)');
+  prevLines.forEach((l, i) => {
+    const stagger = i * 200;
+    setTimeout(() => {
+      l.classList.add('completing');
+      l.querySelector('span')?.style.setProperty('color', 'var(--accent-secondary, #a6e3a1)');
+      setTimeout(() => { l.classList.add('sliding'); }, 300);
+      setTimeout(() => { l.classList.add('completed'); }, 700);
+    }, stagger);
+  });
+
+  const detail = input.detail || input.status || '';
+
   const line = document.createElement('div');
-  line.textContent = label;
+  const toolSpan = document.createElement('span');
+  toolSpan.style.cssText = 'color: var(--accent-primary); font-weight: 600;';
+  toolSpan.textContent = tool;
+  line.appendChild(toolSpan);
+  if (detail) {
+    const detailSpan = document.createElement('span');
+    detailSpan.style.cssText = 'color: var(--text-muted);';
+    detailSpan.textContent = detail;
+    line.appendChild(detailSpan);
+  }
   progressEl.appendChild(line);
   scrollToBottom();
 }
