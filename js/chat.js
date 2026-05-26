@@ -98,29 +98,11 @@ export function initChat() {
 
   modelBar.appendChild(modelSelect);
 
-  // Index status bar
-  const indexBar = document.createElement('div');
-  indexBar.className = 'chat-index-bar';
-
-  const indexStatus = document.createElement('span');
-  indexStatus.className = 'chat-index-status';
-  indexStatus.id = 'chat-index-status';
-  indexStatus.textContent = 'Index: checking…';
-
-  const indexBtn = document.createElement('button');
-  indexBtn.className = 'btn btn-ghost chat-index-btn';
-  indexBtn.id = 'chat-index-btn';
-  indexBtn.textContent = 'Build Index';
-  indexBtn.addEventListener('click', () => buildIndex());
-
-  indexBar.appendChild(indexStatus);
-  indexBar.appendChild(indexBtn);
 
 
   // Assemble panel
   panel.appendChild(header);
   panel.appendChild(modelBar);
-  panel.appendChild(indexBar);
   panel.appendChild(messagesArea);
   panel.appendChild(inputArea);
   chatContainer.appendChild(panel);
@@ -160,13 +142,6 @@ export function initChat() {
     }
   });
 
-  // Check index status on init
-  checkIndexStatus();
-
-  // Refresh index status when auto-indexing completes
-  document.addEventListener('satori:index-updated', () => {
-    checkIndexStatus();
-  });
 }
 
 /**
@@ -273,15 +248,23 @@ async function sendMessage() {
 
         try {
           const event = JSON.parse(jsonStr);
-          if (event.type === 'sources') {
-            messageSources = event.sources || [];
+          if (event.type === 'progress') {
+            updateProgress(event.tool, event.input);
+          } else if (event.type === 'sources') {
+            messageSources = (event.paths || []).map(p => ({
+              path: p,
+              title: p.split('/').pop().replace('.md', ''),
+            }));
           } else if (event.type === 'text') {
+            removeProgress();
             messages[aiMessageIndex].content += event.content;
             updateLastAIMessage(messages[aiMessageIndex].content, messageSources);
             scrollToBottom();
           } else if (event.type === 'done') {
+            removeProgress();
             messages[aiMessageIndex].sources = messageSources;
           } else if (event.type === 'error') {
+            removeProgress();
             messages[aiMessageIndex].content += `\n[Error: ${event.content}]`;
             updateLastAIMessage(messages[aiMessageIndex].content, messageSources);
           }
@@ -357,7 +340,7 @@ function updateLastAIMessage(content, sources) {
       chip.className = 'chat-source-chip';
       const filename = src.path.split('/').pop();
       chip.textContent = filename;
-      chip.title = `${src.title} (lines ${src.start_line}-${src.end_line})`;
+      chip.title = src.path;
       chip.addEventListener('click', () => {
         document.dispatchEvent(new CustomEvent('satori:file-open', {
           detail: { path: src.path }
@@ -422,52 +405,35 @@ export function sendToChat(text) {
 }
 
 /**
- * Check if the current vault's index is built.
+ * Show what the agent is currently doing (tool calls in progress).
  */
-async function checkIndexStatus() {
-  const statusEl = document.getElementById('chat-index-status');
-  if (!statusEl) return;
-
-  try {
-    const resp = await fetch(`${SERVER_URL}/api/index/status`);
-    const data = await resp.json();
-    if (data.indexed) {
-      const vaults = data.vault_count > 1 ? ` across ${data.vault_count} vaults` : '';
-      statusEl.textContent = `Index: ${data.total_vectors} chunks${vaults}`;
-      statusEl.classList.add('indexed');
-    } else {
-      statusEl.textContent = 'Index: not built';
-      statusEl.classList.remove('indexed');
-    }
-  } catch {
-    statusEl.textContent = 'Index: error';
+function updateProgress(tool, input) {
+  const container = document.getElementById('chat-messages');
+  if (!container) return;
+  let progressEl = container.querySelector('.chat-progress');
+  if (!progressEl) {
+    progressEl = document.createElement('div');
+    progressEl.className = 'chat-progress';
+    container.appendChild(progressEl);
   }
+  const label = {
+    search: `Searching: "${input.query || ''}"`,
+    grep: `Looking for: "${input.pattern || ''}"`,
+    find: `Finding files: "${input.pattern || ''}"`,
+    read: `Reading: ${input.path ? input.path.split('/').pop() : ''}`,
+  }[tool] || `Using ${tool}...`;
+  progressEl.textContent = label;
+  scrollToBottom();
 }
 
 /**
- * Trigger index build for the current vault.
+ * Remove the progress indicator.
  */
-async function buildIndex() {
-  const btn = document.getElementById('chat-index-btn');
-  const statusEl = document.getElementById('chat-index-status');
-  if (btn) btn.disabled = true;
-  if (statusEl) statusEl.textContent = 'Building index…';
-
-  try {
-    const resp = await fetch(`${SERVER_URL}/api/index/build`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-    });
-    const data = await resp.json();
-    if (statusEl) {
-      statusEl.textContent = `Index: ${data.total_chunks} chunks`;
-      statusEl.classList.add('indexed');
-    }
-  } catch (err) {
-    if (statusEl) statusEl.textContent = 'Index: build failed';
-  } finally {
-    if (btn) btn.disabled = false;
-  }
+function removeProgress() {
+  const container = document.getElementById('chat-messages');
+  if (!container) return;
+  const el = container.querySelector('.chat-progress');
+  if (el) el.remove();
 }
 
 /**
