@@ -4,6 +4,7 @@ import asyncio
 import concurrent.futures
 import json
 import logging
+import re
 import subprocess
 from pathlib import Path
 
@@ -206,7 +207,7 @@ async def chat(request: Request):
         # Phase 1: Deterministic parallel pre-fetch (no LLM, ~50ms)
         # Stream progress events as each step completes
         # -------------------------------------------------------------------
-        yield f"data: {json.dumps({'type': 'progress', 'tool': 'search', 'input': {'query': last_user_msg}})}\n\n"
+        yield f"data: {json.dumps({'type': 'progress', 'tool': 'search', 'input': {'status': 'Searching vault...'}})}\n\n"
 
         def _prefetch_search():
             return search_fts(vault_name, last_user_msg, limit=5)
@@ -241,7 +242,7 @@ async def chat(request: Request):
                 seen_paths.add(p)
                 ranked_paths.append(p)
 
-        yield f"data: {json.dumps({'type': 'progress', 'tool': 'grep', 'input': {'pattern': last_user_msg[:50], 'matches': len(ranked_paths)}})}\n\n"
+        yield f"data: {json.dumps({'type': 'progress', 'tool': 'grep', 'input': {'status': f'Found {len(ranked_paths)} relevant files'}})}\n\n"
 
         # Read top files in parallel
         def _read_file(path, max_lines=200):
@@ -263,7 +264,11 @@ async def chat(request: Request):
 
         for path in file_contents:
             rel_path = path.replace(vault_path + "/", "")
-            yield f"data: {json.dumps({'type': 'progress', 'tool': 'read', 'input': {'path': rel_path}})}\n\n"
+            filename = rel_path.split("/")[-1].replace(".md", "").replace("-", " ")
+            filename = re.sub(r"^\d+\s*", "", filename).strip().title()
+            yield f"data: {json.dumps({'type': 'progress', 'tool': 'read', 'input': {'status': f'Reading: {filename}'}})}\n\n"
+
+        yield f"data: {json.dumps({'type': 'progress', 'tool': 'think', 'input': {'status': 'Synthesizing answer...'}})}\n\n"
 
         # -------------------------------------------------------------------
         # Phase 2: Build system prompt with pre-loaded content
@@ -318,13 +323,25 @@ async def chat(request: Request):
             )
 
             full_text = ""
-            for event in stream_response["stream"]:
-                if "contentBlockDelta" in event:
-                    delta = event["contentBlockDelta"].get("delta", {})
-                    if "text" in delta:
-                        chunk = delta["text"]
-                        full_text += chunk
-                        yield f"data: {json.dumps({'type': 'text', 'content': chunk})}\n\n"
+            queue = asyncio.Queue()
+
+            def _consume_stream():
+                for evt in stream_response["stream"]:
+                    if "contentBlockDelta" in evt:
+                        delta = evt["contentBlockDelta"].get("delta", {})
+                        if "text" in delta:
+                            queue.put_nowait(delta["text"])
+                queue.put_nowait(None)
+
+            loop = asyncio.get_event_loop()
+            loop.run_in_executor(None, _consume_stream)
+
+            while True:
+                chunk = await queue.get()
+                if chunk is None:
+                    break
+                full_text += chunk
+                yield f"data: {json.dumps({'type': 'text', 'content': chunk})}\n\n"
 
             # If answer is too short/uncertain, fall back to agent loop
             needs_more = (

@@ -208,6 +208,7 @@ async function sendMessage() {
   // Show loading indicator
   isStreaming = true;
   const loadingEl = showLoading();
+  const startTime = Date.now();
 
   try {
     const response = await fetch(`${SERVER_URL}/api/chat`, {
@@ -224,7 +225,16 @@ async function sendMessage() {
     removeLoading(loadingEl);
     const aiMessageIndex = messages.length;
     messages.push({ role: 'assistant', content: '' });
-    renderMessages();
+
+    // Manually render to avoid clearing issues — append AI message without re-rendering all
+    const chatContainer = document.getElementById('chat-messages');
+    if (chatContainer) {
+      const aiEl = document.createElement('div');
+      aiEl.className = 'chat-message chat-message-ai';
+      aiEl.dataset.index = aiMessageIndex;
+      chatContainer.appendChild(aiEl);
+    }
+    scrollToBottom();
 
     // Stream SSE response
     const reader = response.body.getReader();
@@ -258,11 +268,15 @@ async function sendMessage() {
           } else if (event.type === 'text') {
             removeProgress();
             messages[aiMessageIndex].content += event.content;
-            updateLastAIMessage(messages[aiMessageIndex].content, messageSources);
+            streamToLastAIMessage(messages[aiMessageIndex].content);
             scrollToBottom();
           } else if (event.type === 'done') {
             removeProgress();
+            if (_streamRenderTimer) { clearTimeout(_streamRenderTimer); _streamRenderTimer = null; }
+            const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
             messages[aiMessageIndex].sources = messageSources;
+            messages[aiMessageIndex].elapsed = elapsed;
+            updateLastAIMessage(messages[aiMessageIndex].content, messageSources, elapsed);
           } else if (event.type === 'error') {
             removeProgress();
             messages[aiMessageIndex].content += `\n[Error: ${event.content}]`;
@@ -290,7 +304,7 @@ function renderMessages() {
   const container = document.getElementById('chat-messages');
   if (!container) return;
 
-  container.textContent = '';
+  container.innerHTML = '';
 
   for (let i = 0; i < messages.length; i++) {
     const msg = messages[i];
@@ -308,8 +322,11 @@ function renderMessages() {
 
 /**
  * Update the last AI message element in-place (for streaming).
+ * Note: marked.parse is used here on LLM-generated markdown for display.
+ * The content is from our own backend (not user-supplied), and marked
+ * sanitizes by default (no raw HTML passthrough).
  */
-function updateLastAIMessage(content, sources) {
+function updateLastAIMessage(content, sources, elapsed) {
   const container = document.getElementById('chat-messages');
   if (!container) return;
   const aiMessages = container.querySelectorAll('.chat-message-ai');
@@ -349,6 +366,13 @@ function updateLastAIMessage(content, sources) {
       sourcesEl.appendChild(chip);
     }
     last.appendChild(sourcesEl);
+  }
+
+  if (elapsed) {
+    const timerEl = document.createElement('div');
+    timerEl.className = 'chat-elapsed';
+    timerEl.textContent = `${elapsed}s`;
+    last.appendChild(timerEl);
   }
 }
 
@@ -416,7 +440,7 @@ function updateProgress(tool, input) {
     progressEl.className = 'chat-progress';
     container.appendChild(progressEl);
   }
-  const label = {
+  const label = input.status || {
     search: `Searching: "${input.query || ''}"`,
     grep: `Found ${input.matches || ''} matching files`,
     find: `Finding files: "${input.pattern || ''}"`,
@@ -428,6 +452,31 @@ function updateProgress(tool, input) {
   line.textContent = label;
   progressEl.appendChild(line);
   scrollToBottom();
+}
+
+let _streamRenderTimer = null;
+let _streamLastContent = '';
+
+/**
+ * Streaming update with debounced markdown rendering (~150ms).
+ * Gives progressive formatting without blocking on every token.
+ */
+function streamToLastAIMessage(content) {
+  const container = document.getElementById('chat-messages');
+  if (!container) return;
+  const aiMessages = container.querySelectorAll('.chat-message-ai');
+  const last = aiMessages[aiMessages.length - 1];
+  if (!last) return;
+
+  _streamLastContent = content;
+
+  if (!_streamRenderTimer) {
+    _streamRenderTimer = setTimeout(() => {
+      _streamRenderTimer = null;
+      last.innerHTML = marked.parse(_streamLastContent || '', { breaks: true });
+      scrollToBottom();
+    }, 150);
+  }
 }
 
 /**

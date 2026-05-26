@@ -2078,6 +2078,7 @@ code, pre, .mono {
 .chat-sources-label { font-size: 11px; color: var(--text-muted); margin-right: 4px; }
 .chat-source-chip { font-size: 11px; padding: 2px 8px; border-radius: 12px; background: rgba(137, 180, 250, 0.15); color: var(--accent-primary); border: none; cursor: pointer; }
 .chat-source-chip:hover { background: var(--accent-primary); color: var(--bg-primary); }
+.chat-elapsed { font-size: 10px; color: var(--text-muted); text-align: right; margin-top: 4px; opacity: 0.7; }
 .chat-offline { padding: 20px; text-align: center; color: var(--text-muted); font-size: 12px; }
 
 /* AI actions menu */
