@@ -8,6 +8,7 @@ let editorView = null;
 let currentFilePath = null;
 let saveTimer = null;
 let previewTimer = null;
+let lastSaveTime = 0;
 const scrollPositions = new Map(); // path -> { editor: number, preview: number }
 
 // Exports
@@ -188,9 +189,14 @@ async function saveCurrentFile() {
     const content = editorView.state.doc.toString();
     const fileHandle = await getFileHandle(currentFilePath);
     await writeFile(fileHandle, content);
+    lastSaveTime = Date.now();
   } catch (err) {
     console.error('Failed to save file:', err);
   }
+}
+
+export function getLastSaveTime() {
+  return lastSaveTime;
 }
 
 /**
@@ -212,14 +218,19 @@ export async function openFile(path) {
     const content = await readFile(fileHandle);
 
     const preview = document.getElementById('preview-pane');
+    const isReload = currentFilePath === path;
 
     // Save scroll position of the file we're leaving
-    if (currentFilePath && currentFilePath !== path) {
+    if (currentFilePath && !isReload) {
       scrollPositions.set(currentFilePath, {
         editor: editorView.scrollDOM.scrollTop,
         preview: preview ? preview.scrollTop : 0,
       });
     }
+
+    // Capture current scroll before replacing content (for same-file reload)
+    const prevEditorScroll = editorView.scrollDOM.scrollTop;
+    const prevPreviewScroll = preview ? preview.scrollTop : 0;
 
     // Replace editor content
     editorView.dispatch({
@@ -232,14 +243,19 @@ export async function openFile(path) {
 
     currentFilePath = path;
 
-    // Restore saved scroll position, or scroll to top for new files
-    const saved = scrollPositions.get(path);
-    if (saved) {
-      editorView.scrollDOM.scrollTop = saved.editor;
-      if (preview) preview.scrollTop = saved.preview;
+    // Restore scroll position
+    if (isReload) {
+      editorView.scrollDOM.scrollTop = prevEditorScroll;
+      if (preview) preview.scrollTop = prevPreviewScroll;
     } else {
-      editorView.dispatch({ selection: { anchor: 0 }, scrollIntoView: true });
-      if (preview) preview.scrollTop = 0;
+      const saved = scrollPositions.get(path);
+      if (saved) {
+        editorView.scrollDOM.scrollTop = saved.editor;
+        if (preview) preview.scrollTop = saved.preview;
+      } else {
+        editorView.dispatch({ selection: { anchor: 0 }, scrollIntoView: true });
+        if (preview) preview.scrollTop = 0;
+      }
     }
 
     // Highlight in tree
@@ -248,10 +264,22 @@ export async function openFile(path) {
     // Persist for restore on refresh
     localStorage.setItem('satorilite-last-file', path);
 
-    // Dispatch file-loaded event
-    window.dispatchEvent(new CustomEvent('satorilite:file-loaded', {
-      detail: { path, content }
-    }));
+    if (isReload) {
+      // Re-render preview without resetting scroll
+      const previewEl = document.getElementById('preview-pane');
+      window.dispatchEvent(new CustomEvent('satorilite:content-changed', {
+        detail: { path, content }
+      }));
+      // Restore preview scroll after render
+      requestAnimationFrame(() => {
+        editorView.scrollDOM.scrollTop = prevEditorScroll;
+        if (previewEl) previewEl.scrollTop = prevPreviewScroll;
+      });
+    } else {
+      window.dispatchEvent(new CustomEvent('satorilite:file-loaded', {
+        detail: { path, content }
+      }));
+    }
   } catch (err) {
     console.error('Failed to open file:', path, err);
   }

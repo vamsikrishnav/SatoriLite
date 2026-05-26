@@ -421,6 +421,9 @@ def _content_hash(content: str) -> str:
 
 def reindex_file(index_dir: str, file_path: str, content: str) -> bool:
     """Re-index a single file in both chunk and document indices. Returns True if content changed."""
+    if not content.strip():
+        return False
+
     chunk_index = get_chunk_index(index_dir)
 
     # Check if content has changed via hash
@@ -522,6 +525,9 @@ def reconcile_vault_index(vault_path: str, index_dir: str) -> dict[str, int]:
         all_chunks: list[dict[str, Any]] = []
         doc_texts: list[tuple[str, str, str]] = []
         for path, content_hash, content in files_to_index:
+            if not content.strip():
+                logger.info("Skipping empty file: %s", path)
+                continue
             chunks = chunk_markdown(content, file_path=path)
             for c in chunks:
                 c["content_hash"] = content_hash

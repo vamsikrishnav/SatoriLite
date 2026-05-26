@@ -11,6 +11,7 @@ from fastapi.responses import StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
 from server.config import AWS_REGION, BEDROCK_MODEL_ID, VAULT_PATH, INDEX_DIR, index_dir_for_vault
+from server.registry import get_last_active_vault, set_last_active_vault
 from server.indexer import (
     build_vault_index, reindex_file, remove_file_from_index,
     get_chunk_index, get_doc_index, reconcile_vault_index, embed_texts,
@@ -65,6 +66,8 @@ async def _activate_vault(vault_path: str):
     active_vault_path = vault_path
     active_index_dir = index_dir_for_vault(vault_path)
     Path(active_index_dir).mkdir(parents=True, exist_ok=True)
+    set_last_active_vault(vault_path)
+    logger.info("Activating vault: %s", vault_path)
 
     # Stop existing watcher
     if vault_watcher:
@@ -109,10 +112,14 @@ async def startup():
     if Path(active_vault_path).is_dir() and active_vault_path != ".":
         await _activate_vault(active_vault_path)
     else:
-        # Auto-activate first registered vault
-        vaults = list_vaults()
-        if vaults:
-            await _activate_vault(vaults[0]["path"])
+        # Restore last active vault, or fall back to first registered
+        last_active = get_last_active_vault()
+        if last_active:
+            await _activate_vault(last_active)
+        else:
+            vaults = list_vaults()
+            if vaults:
+                await _activate_vault(vaults[0]["path"])
 
     # Pre-load FTS indices for all registered vaults (enables fan-out search)
     await asyncio.to_thread(_ensure_all_fts)
@@ -216,6 +223,7 @@ async def _flush_pending():
 
     await _broadcast(json.dumps({"type": "indexing", "status": "busy", "path": ""}))
 
+    changed_count = 0
     for path, event_type in paths.items():
         try:
             if event_type in ("created", "modified"):
@@ -223,14 +231,18 @@ async def _flush_pending():
                 changed = await asyncio.to_thread(reindex_file, _get_index_dir(), path, content)
                 if changed:
                     fts_index_file("default", path, content)
+                    changed_count += 1
                     logger.info("Reindexed: %s", path)
             elif event_type == "deleted":
                 await asyncio.to_thread(remove_file_from_index, _get_index_dir(), path)
                 remove_from_fts("default", path)
+                changed_count += 1
                 logger.info("Removed from index: %s", path)
         except (OSError, UnicodeDecodeError) as e:
             logger.warning("Failed to process %s: %s", path, e)
 
+    if changed_count:
+        logger.info("Index update complete: %d file(s) changed [vault: %s]", changed_count, _get_vault_path())
     await _broadcast(json.dumps({"type": "indexing", "status": "done", "path": ""}))
 
     # Debounce graph rebuild separately (expensive)

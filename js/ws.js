@@ -1,5 +1,5 @@
 import { getRootHandle } from './fs.js';
-import { getCurrentFilePath, openFile } from './editor.js';
+import { getCurrentFilePath, openFile, getLastSaveTime } from './editor.js';
 
 let socket = null;
 let reconnectAttempts = 0;
@@ -116,11 +116,16 @@ function debouncedTreeRefresh() {
   }, TREE_DEBOUNCE_MS);
 }
 
+const SELF_SAVE_IGNORE_MS = 2000;
+
 function debouncedFileReload(changedPath) {
   const currentPath = getCurrentFilePath();
   if (!currentPath) return;
 
   if (!changedPath.endsWith(currentPath)) return;
+
+  // Ignore bounce-back from our own save
+  if (Date.now() - getLastSaveTime() < SELF_SAVE_IGNORE_MS) return;
 
   if (fileReloadTimers.has(currentPath)) {
     clearTimeout(fileReloadTimers.get(currentPath));
