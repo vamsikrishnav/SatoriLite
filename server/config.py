@@ -10,7 +10,8 @@ if _env_file.exists():
 
 # AWS / Bedrock
 AWS_REGION = os.environ.get("AWS_REGION", "us-east-1")
-BEDROCK_MODEL_ID = os.environ.get("BEDROCK_MODEL_ID", "us.anthropic.claude-sonnet-4-6-v1")
+BEDROCK_MODEL_ID = os.environ.get("BEDROCK_MODEL_ID", "global.anthropic.claude-opus-4-6-v1")
+BEDROCK_ROUTER_MODEL_ID = os.environ.get("BEDROCK_ROUTER_MODEL_ID", "global.anthropic.claude-sonnet-4-6")
 
 # FTS (BM25)
 BM25_K1 = 1.2

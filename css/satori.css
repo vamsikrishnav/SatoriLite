@@ -2069,7 +2069,10 @@ code, pre, .mono {
 .chat-loading .dot:nth-child(2) { animation-delay: 0.2s; }
 .chat-loading .dot:nth-child(3) { animation-delay: 0.4s; }
 @keyframes chatBounce { 0%, 80%, 100% { transform: translateY(0); } 40% { transform: translateY(-6px); } }
-.chat-progress { padding: 0.5rem 1rem; font-size: 0.8rem; color: var(--text-muted); font-style: italic; animation: chatPulse 1.5s ease-in-out infinite; }
+.chat-progress { padding: 0.5rem 1rem; font-size: 0.8rem; color: var(--text-muted); font-style: italic; }
+.chat-progress div { padding: 0.1rem 0; opacity: 0; animation: chatFadeIn 0.3s ease forwards; }
+.chat-progress div:last-child { animation: chatFadeIn 0.3s ease forwards, chatPulse 1.5s ease-in-out 0.3s infinite; }
+@keyframes chatFadeIn { to { opacity: 1; } }
 @keyframes chatPulse { 0%, 100% { opacity: 0.6; } 50% { opacity: 1; } }
 .chat-sources { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border-primary); }
 .chat-sources-label { font-size: 11px; color: var(--text-muted); margin-right: 4px; }

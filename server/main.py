@@ -1,8 +1,10 @@
 """FastAPI app for SatoriLite — agentic chat with tool-use loop."""
 
 import asyncio
+import concurrent.futures
 import json
 import logging
+import subprocess
 from pathlib import Path
 
 import boto3
@@ -10,9 +12,9 @@ from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconn
 from fastapi.responses import StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
-from server.config import AWS_REGION, BEDROCK_MODEL_ID, VAULT_PATH, INDEX_DIR, index_dir_for_vault
+from server.config import AWS_REGION, BEDROCK_MODEL_ID, BEDROCK_ROUTER_MODEL_ID, VAULT_PATH, INDEX_DIR, index_dir_for_vault
 from server.registry import get_last_active_vault, set_last_active_vault
-from server.fts import build_fts_index, get_fts_index, reset_fts_index, index_file as fts_index_file, remove_from_fts
+from server.fts import build_fts_index, get_fts_index, reset_fts_index, index_file as fts_index_file, remove_from_fts, search_fts
 from server.watcher import VaultWatcher
 from server.tools import execute_tool, TOOL_DEFINITIONS
 from server.registry import list_vaults, add_vault, remove_vault as registry_remove_vault
@@ -34,7 +36,7 @@ vault_watcher: VaultWatcher | None = None
 active_vault_path: str = VAULT_PATH
 active_index_dir: str = INDEX_DIR
 
-MAX_TOOL_CALLS = 10
+MAX_TOOL_CALLS = 15
 
 
 def _get_vault_path() -> str:
@@ -193,110 +195,222 @@ async def chat(request: Request):
     if not messages:
         raise HTTPException(status_code=400, detail="messages are required")
 
-    model_id = model or BEDROCK_MODEL_ID
+    model_id = model or BEDROCK_ROUTER_MODEL_ID
     vault_path = _get_vault_path()
     vault_name = "default"
 
-    # Build system prompt
-    system_parts = []
-    vaults = list_vaults()
-    vault_list = ", ".join(f"{v['name']} ({v['path']})" for v in vaults)
-    system_parts.append(
-        f"You are a knowledge assistant for the user's personal notes vault.\n"
-        f"Use the provided tools to search and read vault content before answering.\n"
-        f"Do not fabricate information — if you can't find it, say so.\n"
-        f"Cite file paths when referencing specific information.\n"
-        f"Format responses with markdown for readability.\n\n"
-        f"Active vault: {vault_path}\n"
-        f"Available vaults: {vault_list}"
-    )
-    if file_context:
-        filename = Path(file_path).name if file_path else "current file"
-        system_parts.append(f"The user currently has this file open ({filename}):\n\n{file_context}")
+    last_user_msg = messages[-1]["content"] if messages[-1]["role"] == "user" else ""
 
-    system_prompt = [{"text": "\n\n---\n\n".join(system_parts)}]
+    async def event_generator():
+        # -------------------------------------------------------------------
+        # Phase 1: Deterministic parallel pre-fetch (no LLM, ~50ms)
+        # Stream progress events as each step completes
+        # -------------------------------------------------------------------
+        yield f"data: {json.dumps({'type': 'progress', 'tool': 'search', 'input': {'query': last_user_msg}})}\n\n"
 
-    # Convert messages to Bedrock format
-    bedrock_messages = []
-    for msg in messages:
-        bedrock_messages.append({
-            "role": msg["role"],
-            "content": [{"text": msg["content"]}],
-        })
+        def _prefetch_search():
+            return search_fts(vault_name, last_user_msg, limit=5)
 
-    # Agent loop
-    tool_calls_made = 0
-    progress_events = []
-    files_read = set()
+        def _prefetch_grep():
+            words = last_user_msg.lower().split()
+            pattern = " ".join(words[:4]) if len(words) >= 2 else last_user_msg
+            try:
+                result = subprocess.run(
+                    ["grep", "-rin", "--include=*.md", "-l", pattern, vault_path],
+                    capture_output=True, text=True, timeout=5,
+                )
+                return [p.strip() for p in result.stdout.strip().split("\n") if p.strip()][:10]
+            except (subprocess.TimeoutExpired, OSError):
+                return []
 
-    client = boto3.client("bedrock-runtime", region_name=AWS_REGION)
-    tool_config = {"tools": TOOL_DEFINITIONS}
+        with concurrent.futures.ThreadPoolExecutor(max_workers=2) as pool:
+            search_future = pool.submit(_prefetch_search)
+            grep_future = pool.submit(_prefetch_grep)
+            search_results = search_future.result()
+            grep_paths = grep_future.result()
 
-    try:
-        while tool_calls_made < MAX_TOOL_CALLS:
-            response = await asyncio.to_thread(
-                client.converse,
+        # Merge results
+        seen_paths = set()
+        ranked_paths = []
+        for r in search_results:
+            if r["path"] not in seen_paths:
+                seen_paths.add(r["path"])
+                ranked_paths.append(r["path"])
+        for p in grep_paths:
+            if p not in seen_paths:
+                seen_paths.add(p)
+                ranked_paths.append(p)
+
+        yield f"data: {json.dumps({'type': 'progress', 'tool': 'grep', 'input': {'pattern': last_user_msg[:50], 'matches': len(ranked_paths)}})}\n\n"
+
+        # Read top files in parallel
+        def _read_file(path, max_lines=200):
+            try:
+                content = Path(path).read_text(errors="replace")
+                lines = content.split("\n")[:max_lines]
+                return path, "\n".join(lines)
+            except OSError:
+                return path, ""
+
+        files_to_read = ranked_paths[:5]
+        file_contents = {}
+        with concurrent.futures.ThreadPoolExecutor(max_workers=5) as pool:
+            futures = {pool.submit(_read_file, p): p for p in files_to_read}
+            for f in concurrent.futures.as_completed(futures):
+                path, content = f.result()
+                if content:
+                    file_contents[path] = content
+
+        for path in file_contents:
+            rel_path = path.replace(vault_path + "/", "")
+            yield f"data: {json.dumps({'type': 'progress', 'tool': 'read', 'input': {'path': rel_path}})}\n\n"
+
+        # -------------------------------------------------------------------
+        # Phase 2: Build system prompt with pre-loaded content
+        # -------------------------------------------------------------------
+        system_parts = []
+        vaults = list_vaults()
+        vault_list = ", ".join(f"{v['name']} ({v['path']})" for v in vaults)
+        system_parts.append(
+            f"You are a knowledge assistant for the user's personal notes vault.\n"
+            f"The relevant vault content has been pre-loaded below. Answer directly from it.\n"
+            f"Only use tools if the pre-loaded content is clearly insufficient.\n"
+            f"Do not fabricate information — if you can't find it, say so.\n"
+            f"Cite file paths when referencing specific information.\n"
+            f"Format responses with markdown for readability.\n\n"
+            f"Active vault: {vault_path}\n"
+            f"Available vaults: {vault_list}"
+        )
+        if file_context:
+            filename = Path(file_path).name if file_path else "current file"
+            system_parts.append(f"The user currently has this file open ({filename}):\n\n{file_context}")
+
+        if file_contents:
+            context_blocks = []
+            for path, content in file_contents.items():
+                rel_path = path.replace(vault_path + "/", "")
+                context_blocks.append(f"### {rel_path}\n```\n{content}\n```")
+            system_parts.append(
+                "## Pre-loaded vault content\n\n" + "\n\n".join(context_blocks)
+            )
+
+        system_prompt = [{"text": "\n\n---\n\n".join(system_parts)}]
+
+        bedrock_messages = []
+        for msg in messages:
+            bedrock_messages.append({
+                "role": msg["role"],
+                "content": [{"text": msg["content"]}],
+            })
+
+        files_read = set(file_contents.keys())
+        client = boto3.client("bedrock-runtime", region_name=AWS_REGION)
+
+        # -------------------------------------------------------------------
+        # Phase 3: Stream LLM response token-by-token
+        # -------------------------------------------------------------------
+        try:
+            stream_response = await asyncio.to_thread(
+                client.converse_stream,
                 modelId=model_id,
                 messages=bedrock_messages,
                 system=system_prompt,
-                toolConfig=tool_config,
             )
 
-            stop_reason = response.get("stopReason", "")
-            assistant_message = response["output"]["message"]
-            bedrock_messages.append(assistant_message)
+            full_text = ""
+            for event in stream_response["stream"]:
+                if "contentBlockDelta" in event:
+                    delta = event["contentBlockDelta"].get("delta", {})
+                    if "text" in delta:
+                        chunk = delta["text"]
+                        full_text += chunk
+                        yield f"data: {json.dumps({'type': 'text', 'content': chunk})}\n\n"
 
-            if stop_reason == "tool_use":
-                tool_results = []
-                for block in assistant_message["content"]:
-                    if "toolUse" not in block:
-                        continue
-                    tool_use = block["toolUse"]
-                    tool_name = tool_use["name"]
-                    tool_input = tool_use["input"]
-                    tool_id = tool_use["toolUseId"]
+            # If answer is too short/uncertain, fall back to agent loop
+            needs_more = (
+                len(full_text) < 100
+                or "don't have enough" in full_text.lower()
+                or "cannot find" in full_text.lower()
+                or "no information" in full_text.lower()
+            ) and file_contents
 
-                    progress_events.append({"type": "progress", "tool": tool_name, "input": tool_input})
+            if needs_more:
+                tool_config = {"tools": TOOL_DEFINITIONS}
+                tool_calls_made = 0
 
-                    result = await asyncio.to_thread(
-                        execute_tool, tool_name, tool_input, vault_path, vault_name
-                    )
-
-                    if tool_name == "read" and "content" in result:
-                        files_read.add(tool_input.get("path", ""))
-
-                    tool_results.append({
-                        "toolResultId": tool_id,
-                        "content": [{"text": json.dumps(result)}],
+                bedrock_messages_with_tools = []
+                for msg in messages:
+                    bedrock_messages_with_tools.append({
+                        "role": msg["role"],
+                        "content": [{"text": msg["content"]}],
                     })
-                    tool_calls_made += 1
 
-                bedrock_messages.append({
-                    "role": "user",
-                    "content": [{"toolResult": tr} for tr in tool_results],
-                })
-            else:
-                break
+                response = await asyncio.to_thread(
+                    client.converse,
+                    modelId=model_id,
+                    messages=bedrock_messages_with_tools,
+                    system=system_prompt,
+                    toolConfig=tool_config,
+                )
+                stop_reason = response.get("stopReason", "")
+                assistant_message = response["output"]["message"]
+                bedrock_messages_with_tools.append(assistant_message)
 
-    except Exception as e:
-        raise HTTPException(status_code=502, detail=f"Bedrock error: {str(e)}")
+                while stop_reason == "tool_use" and tool_calls_made < MAX_TOOL_CALLS:
+                    tool_results = []
+                    for block in assistant_message["content"]:
+                        if "toolUse" not in block:
+                            continue
+                        tool_use = block["toolUse"]
+                        tool_name = tool_use["name"]
+                        tool_input = tool_use["input"]
+                        tool_id = tool_use["toolUseId"]
 
-    # Extract final text from the last assistant message
-    final_text = ""
-    for block in assistant_message["content"]:
-        if "text" in block:
-            final_text += block["text"]
+                        yield f"data: {json.dumps({'type': 'progress', 'tool': tool_name, 'input': tool_input})}\n\n"
 
-    async def event_generator():
-        for evt in progress_events:
-            yield f"data: {json.dumps(evt)}\n\n"
+                        result = await asyncio.to_thread(
+                            execute_tool, tool_name, tool_input, vault_path, vault_name
+                        )
 
-        if final_text:
-            yield f"data: {json.dumps({'type': 'text', 'content': final_text})}\n\n"
+                        if tool_name == "read" and "content" in result:
+                            files_read.add(tool_input.get("path", ""))
 
+                        tool_results.append({
+                            "toolUseId": tool_id,
+                            "content": [{"text": json.dumps(result)}],
+                        })
+                        tool_calls_made += 1
+
+                    bedrock_messages_with_tools.append({
+                        "role": "user",
+                        "content": [{"toolResult": tr} for tr in tool_results],
+                    })
+
+                    response = await asyncio.to_thread(
+                        client.converse,
+                        modelId=model_id,
+                        messages=bedrock_messages_with_tools,
+                        system=system_prompt,
+                        toolConfig=tool_config,
+                    )
+                    stop_reason = response.get("stopReason", "")
+                    assistant_message = response["output"]["message"]
+                    bedrock_messages_with_tools.append(assistant_message)
+
+                # Stream the fallback answer
+                fallback_text = ""
+                for block in assistant_message["content"]:
+                    if "text" in block:
+                        fallback_text += block["text"]
+                if fallback_text:
+                    yield f"data: {json.dumps({'type': 'text', 'content': fallback_text})}\n\n"
+
+        except Exception as e:
+            yield f"data: {json.dumps({'type': 'error', 'content': str(e)})}\n\n"
+
+        # Sources and done
         if files_read:
             yield f"data: {json.dumps({'type': 'sources', 'paths': list(files_read)})}\n\n"
-
         yield f"data: {json.dumps({'type': 'done'})}\n\n"
 
     return StreamingResponse(

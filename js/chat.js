@@ -418,11 +418,15 @@ function updateProgress(tool, input) {
   }
   const label = {
     search: `Searching: "${input.query || ''}"`,
-    grep: `Looking for: "${input.pattern || ''}"`,
+    grep: `Found ${input.matches || ''} matching files`,
     find: `Finding files: "${input.pattern || ''}"`,
     read: `Reading: ${input.path ? input.path.split('/').pop() : ''}`,
   }[tool] || `Using ${tool}...`;
-  progressEl.textContent = label;
+
+  // Stack progress lines instead of replacing
+  const line = document.createElement('div');
+  line.textContent = label;
+  progressEl.appendChild(line);
   scrollToBottom();
 }
 
