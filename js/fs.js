@@ -37,9 +37,7 @@ export async function scanDirectory(dirHandle, path = '', isNotesRoot = false) {
 
     if (entry.kind === 'directory') {
       const children = await scanDirectory(entry, entryPath);
-      if (children.length > 0) {
-        entries.push({ name: entry.name, path: entryPath, kind: 'directory', handle: entry, children });
-      }
+      entries.push({ name: entry.name, path: entryPath, kind: 'directory', handle: entry, children });
     } else if (entry.name.endsWith('.md')) {
       entries.push({ name: entry.name, path: entryPath, kind: 'file', handle: entry });
     }
