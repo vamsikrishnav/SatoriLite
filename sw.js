@@ -1,4 +1,4 @@
-const CACHE_NAME = 'satorilite-v12';
+const CACHE_NAME = 'satorilite-v17';
 const APP_SHELL_FILES = [
   '/',
   '/index.html',

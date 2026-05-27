@@ -439,9 +439,21 @@ async def chat(request: Request):
         except Exception as e:
             yield f"data: {json.dumps({'type': 'error', 'content': str(e)})}\n\n"
 
-        # Sources and done
+        # Sources and done — emit relative paths with vault info
         if files_read:
-            yield f"data: {json.dumps({'type': 'sources', 'paths': list(files_read)})}\n\n"
+            source_items = []
+            for fp in files_read:
+                for v in all_vaults:
+                    vp = v["path"]
+                    if fp.startswith(vp + "/"):
+                        source_items.append({
+                            "path": fp[len(vp) + 1:],
+                            "vault": v.get("name", Path(vp).name),
+                        })
+                        break
+                else:
+                    source_items.append({"path": fp, "vault": ""})
+            yield f"data: {json.dumps({'type': 'sources', 'items': source_items})}\n\n"
         yield f"data: {json.dumps({'type': 'done'})}\n\n"
 
     return StreamingResponse(
@@ -485,6 +497,25 @@ async def index_status():
         "total_docs": total,
         "vault_count": vault_count,
     }
+
+
+@app.get("/api/file")
+async def read_vault_file(path: str = ""):
+    """Read a file from any registered vault by relative path."""
+    if not path:
+        raise HTTPException(status_code=400, detail="'path' query param required")
+
+    all_vaults = list_vaults()
+    for v in all_vaults:
+        full_path = Path(v["path"]) / path
+        if full_path.exists() and full_path.is_file():
+            try:
+                content = full_path.read_text(encoding="utf-8")
+                return {"path": path, "vault": v["name"], "content": content}
+            except (OSError, UnicodeDecodeError) as e:
+                raise HTTPException(status_code=500, detail=str(e))
+
+    raise HTTPException(status_code=404, detail=f"File not found: {path}")
 
 
 @app.get("/api/models")
@@ -568,11 +599,11 @@ async def switch_vault(request: Request):
             path = match["path"]
 
     if not path:
-        raise HTTPException(status_code=400, detail="'path' or 'name' is required")
+        return {"status": "no_match", "detail": "No matching vault found for given name"}
 
     abs_path = str(Path(path).expanduser().resolve())
     if not Path(abs_path).is_dir():
-        raise HTTPException(status_code=400, detail=f"Not a valid directory: {abs_path}")
+        return {"status": "no_match", "detail": f"Not a valid directory: {abs_path}"}
 
     await _activate_vault(abs_path)
     add_vault("", abs_path)

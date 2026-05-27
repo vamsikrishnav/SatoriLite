@@ -149,7 +149,8 @@ function showReconnectBanner(vault) {
 
 async function restoreLastFile() {
   const lastFile = localStorage.getItem('satorilite-last-file');
-  if (lastFile) {
+  const lastVaultName = localStorage.getItem('satorilite-last-vault');
+  if (lastFile && lastVaultName === currentVaultName) {
     const { openFile } = await import('./editor.js');
     await openFile(lastFile);
   }
@@ -266,6 +267,9 @@ async function openVault(name, dirHandle) {
 
     // Save to IndexedDB
     await saveVault(name, dirHandle);
+
+    // Persist vault name for last-file restore matching
+    localStorage.setItem('satorilite-last-vault', name);
 
     // Tell server which vault is active (for AI chat context)
     fetch('/api/vault/switch', {

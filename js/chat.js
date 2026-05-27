@@ -261,10 +261,10 @@ async function sendMessage() {
           if (event.type === 'progress') {
             updateProgress(event.tool, event.input);
           } else if (event.type === 'sources') {
-            messageSources = (event.paths || []).map(p => ({
-              path: p,
-              title: p.split('/').pop().replace('.md', ''),
-            }));
+            messageSources = (event.items || event.paths || []).map(item => {
+              if (typeof item === 'string') return { path: item, vault: '', title: item.split('/').pop().replace('.md', '') };
+              return { path: item.path, vault: item.vault || '', title: item.path.split('/').pop().replace('.md', '') };
+            });
           } else if (event.type === 'text') {
             removeProgress();
             messages[aiMessageIndex].content += event.content;
@@ -356,12 +356,21 @@ function updateLastAIMessage(content, sources, elapsed) {
       const chip = document.createElement('button');
       chip.className = 'chat-source-chip';
       const filename = src.path.split('/').pop();
-      chip.textContent = filename;
-      chip.title = src.path;
-      chip.addEventListener('click', () => {
-        document.dispatchEvent(new CustomEvent('satori:file-open', {
-          detail: { path: src.path }
-        }));
+      chip.textContent = src.vault ? `${src.vault}: ${filename}` : filename;
+      chip.title = src.vault ? `[${src.vault}] ${src.path}` : src.path;
+      chip.addEventListener('click', async () => {
+        try {
+          const resp = await fetch(`${SERVER_URL}/api/file?path=${encodeURIComponent(src.path)}`);
+          if (!resp.ok) throw new Error('File not found');
+          const data = await resp.json();
+          window.dispatchEvent(new CustomEvent('satorilite:file-open-content', {
+            detail: { path: src.path, content: data.content, vault: data.vault }
+          }));
+        } catch (_) {
+          window.dispatchEvent(new CustomEvent('satorilite:file-open', {
+            detail: { path: src.path }
+          }));
+        }
       });
       sourcesEl.appendChild(chip);
     }
@@ -546,5 +555,6 @@ async function loadModels() {
     select.appendChild(opt);
   }
 }
+
 
 

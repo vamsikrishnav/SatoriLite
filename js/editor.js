@@ -177,13 +177,27 @@ export async function initEditor() {
     const { path } = e.detail;
     openFile(path);
   });
+
+  // Listen for file-open-content events (from chat sources — content provided directly)
+  window.addEventListener('satorilite:file-open-content', (e) => {
+    const { path, content } = e.detail;
+    if (!editorView) return;
+    // Suppress auto-save for server-loaded content
+    if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; }
+    currentFilePath = null;
+    editorView.dispatch({
+      changes: { from: 0, to: editorView.state.doc.length, insert: content }
+    });
+    currentFilePath = '__readonly__:' + path;
+    window.dispatchEvent(new CustomEvent('satorilite:file-opened', { detail: { path, content } }));
+  });
 }
 
 /**
  * Save the current file to disk
  */
 async function saveCurrentFile() {
-  if (!currentFilePath || !editorView) return;
+  if (!currentFilePath || !editorView || currentFilePath.startsWith('__readonly__:')) return;
 
   try {
     const content = editorView.state.doc.toString();
