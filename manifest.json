@@ -4,8 +4,8 @@
   "description": "Offline-first markdown editor",
   "start_url": "/",
   "display": "standalone",
-  "theme_color": "#cba6f7",
-  "background_color": "#11111b",
+  "theme_color": "#c66b6b",
+  "background_color": "#3d3552",
   "icons": [
     {
       "src": "/icon-192.png",

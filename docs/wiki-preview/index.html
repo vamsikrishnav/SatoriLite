@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SatoriLite — Offline-First Markdown Wiki</title>
+  <meta name="description" content="A blazing-fast offline PWA markdown editor with real filesystem access. No server, no build step.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- Navigation -->
+  <nav class="nav">
+    <a href="#" class="nav-logo">satori~lite</a>
+    <ul class="nav-links">
+      <li><a href="#features">Features</a></li>
+      <li><a href="#architecture">Architecture</a></li>
+      <li><a href="#setup">Setup</a></li>
+      <li><a href="article.html">Wiki Demo</a></li>
+    </ul>
+    <a href="#" class="nav-github">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+      GitHub
+    </a>
+  </nav>
+
+  <!-- Hero Section -->
+  <section class="hero">
+    <canvas id="hero-canvas" class="hero-canvas"></canvas>
+    <div class="hero-content">
+      <h1 class="hero-title">SatoriLite</h1>
+      <div class="hero-stats">
+        <div class="hero-stat">
+          <div class="hero-stat-number">0ms</div>
+          <div class="hero-stat-label">Server Latency</div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-number">PWA</div>
+          <div class="hero-stat-label">Offline First</div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-number">.md</div>
+          <div class="hero-stat-label">Real Files</div>
+        </div>
+      </div>
+      <p class="hero-subtitle">An offline-first markdown wiki that reads and writes real files on your disk. No server, no build step, no lock-in.</p>
+      <div class="hero-cta">
+        <a href="#setup" class="btn btn-primary">Get Started</a>
+        <a href="#features" class="btn btn-secondary">Explore Features</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section id="features">
+    <div class="section-header animate-in">
+      <h2>Built for Knowledge Workers</h2>
+      <p>Everything you need to build a personal wiki — nothing you don't</p>
+    </div>
+    <div class="features-grid">
+      <div class="glass-card animate-in animate-in-delay-1">
+        <div class="feature-icon feature-icon--coral">&#9889;</div>
+        <h3 class="feature-title">Real Filesystem</h3>
+        <p class="feature-desc">File System Access API — reads and writes real .md files. Git-friendly, accessible by any editor or tool.</p>
+      </div>
+      <div class="glass-card animate-in animate-in-delay-2">
+        <div class="feature-icon feature-icon--mauve">&#128196;</div>
+        <h3 class="feature-title">CodeMirror 6 Editor</h3>
+        <p class="feature-desc">Full syntax highlighting, keyboard shortcuts, vim mode, and live markdown preview in a split pane.</p>
+      </div>
+      <div class="glass-card animate-in animate-in-delay-3">
+        <div class="feature-icon feature-icon--green">&#127760;</div>
+        <h3 class="feature-title">Offline PWA</h3>
+        <p class="feature-desc">Service Worker caches everything. Works without network. Install it like a native app.</p>
+      </div>
+      <div class="glass-card animate-in animate-in-delay-4">
+        <div class="feature-icon feature-icon--purple">&#128279;</div>
+        <h3 class="feature-title">Link Autocomplete</h3>
+        <p class="feature-desc">Type [ and get fuzzy file search. Build a connected knowledge graph with zero friction.</p>
+      </div>
+      <div class="glass-card animate-in animate-in-delay-5">
+        <div class="feature-icon feature-icon--teal">&#128194;</div>
+        <h3 class="feature-title">File Tree</h3>
+        <p class="feature-desc">Browse, rename, move, and delete files directly from the sidebar. Full file operations without leaving the app.</p>
+      </div>
+      <div class="glass-card animate-in animate-in-delay-1">
+        <div class="feature-icon feature-icon--salmon">&#127912;</div>
+        <h3 class="feature-title">Catppuccin Themes</h3>
+        <p class="feature-desc">Tokyo Night dark and Latte light themes. Satori's polished visual design, zero-config.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Architecture -->
+  <section id="architecture">
+    <div class="section-header animate-in">
+      <h2>Architecture</h2>
+      <p>Vanilla JS, no build step, real files on disk</p>
+    </div>
+    <div class="arch-container animate-in">
+      <div class="arch-diagram">
+        <div class="arch-layer">
+          <div class="arch-layer-label">BROWSER</div>
+          <div class="arch-row">
+            <div class="arch-box arch-box--full arch-box--surface">
+              <div class="arch-box-title">Chrome / Edge / Arc / Brave</div>
+              <div class="arch-box-sub">File System Access API &nbsp;|&nbsp; Service Worker &nbsp;|&nbsp; PWA Shell</div>
+            </div>
+          </div>
+        </div>
+        <div class="arch-arrows">
+          <div class="arch-arrow-col"><div class="arch-arrow"></div><span class="arch-arrow-label">ES Modules</span></div>
+        </div>
+        <div class="arch-layer">
+          <div class="arch-layer-label">APPLICATION</div>
+          <div class="arch-row">
+            <div class="arch-box arch-box--blue">
+              <div class="arch-box-title">Editor</div>
+              <div class="arch-box-sub">CodeMirror 6 | Split Pane</div>
+            </div>
+            <div class="arch-box arch-box--green">
+              <div class="arch-box-title">File Manager</div>
+              <div class="arch-box-sub">Tree | Rename | Move | Delete</div>
+            </div>
+            <div class="arch-box arch-box--purple">
+              <div class="arch-box-title">Renderer</div>
+              <div class="arch-box-sub">marked.js | Mermaid | KaTeX</div>
+            </div>
+          </div>
+        </div>
+        <div class="arch-arrows">
+          <div class="arch-arrow-col"><div class="arch-arrow"></div></div>
+        </div>
+        <div class="arch-layer">
+          <div class="arch-layer-label">STORAGE</div>
+          <div class="arch-row">
+            <div class="arch-box arch-box--full arch-box--infra">
+              <div class="arch-box-title">Local Filesystem (via File System Access API)</div>
+              <div class="arch-box-sub">Real .md files &nbsp;|&nbsp; Git-compatible &nbsp;|&nbsp; No proprietary format</div>
+            </div>
+          </div>
+        </div>
+        <div class="arch-legend">
+          <div class="arch-legend-item"><span class="arch-legend-swatch arch-legend-swatch--blue"></span>Editor</div>
+          <div class="arch-legend-item"><span class="arch-legend-swatch arch-legend-swatch--green"></span>File Ops</div>
+          <div class="arch-legend-item"><span class="arch-legend-swatch arch-legend-swatch--purple"></span>Rendering</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Setup -->
+  <section id="setup">
+    <div class="section-header animate-in">
+      <h2>Quick Setup</h2>
+      <p>Open a file and start writing — literally</p>
+    </div>
+    <div class="setup-grid">
+      <div class="setup-card animate-in animate-in-delay-1">
+        <div class="setup-card-header">
+          <h3>Local</h3>
+          <span class="badge" style="background: rgba(123,198,123,0.12); color: #a0d8a0;">Recommended</span>
+        </div>
+        <div class="setup-card-body">
+          <div class="code-block">
+            <code><span class="comment"># Clone and open</span>
+git clone https://github.com/you/satori-lite
+<span class="keyword">cd</span> satori-lite
+<span class="function">open</span> index.html
+
+<span class="comment"># Or serve locally</span>
+python3 -m http.server 8080</code>
+          </div>
+        </div>
+      </div>
+      <div class="setup-card animate-in animate-in-delay-2">
+        <div class="setup-card-header">
+          <h3>GitHub Pages</h3>
+          <span class="badge" style="background: rgba(155,123,198,0.12); color: #c0a8e0;">Hosted</span>
+        </div>
+        <div class="setup-card-body">
+          <div class="code-block">
+            <code><span class="comment"># Push to GitHub, enable Pages</span>
+git push origin main
+
+<span class="comment"># Settings → Pages → Source: main / root</span>
+<span class="comment"># Your wiki is live at:</span>
+<span class="string">https://you.github.io/satori-lite</span></code>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <p>SatoriLite &mdash; Offline-First Markdown Wiki &mdash; No Server, No Build, No Lock-in</p>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js" integrity="sha384-qOkzR5Ke/XkQxuGVJ9hpFEpDlcoLtWwVYhnJf06cLIZa2vaIptSqaubivErzmD5O" crossorigin="anonymous"></script>
+  <script src="js/hero.js"></script>
+  <script src="js/animations.js"></script>
+
+</body>
+</html>
