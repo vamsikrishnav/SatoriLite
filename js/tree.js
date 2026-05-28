@@ -16,23 +16,23 @@ function persistExpandedPaths() {
 
 // SVG icon constants (trusted, hardcoded strings)
 const FILE_ICONS = {
-  '.md': `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2z"/><line x1="9" y1="9" x2="10" y2="9"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>`,
-  '.png': `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M20 15l-5-5L5 20"/></svg>`,
-  '.jpg': `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M20 15l-5-5L5 20"/></svg>`,
-  '.jpeg': `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M20 15l-5-5L5 20"/></svg>`,
-  '.gif': `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M20 15l-5-5L5 20"/></svg>`,
-  '.svg': `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M20 15l-5-5L5 20"/></svg>`,
-  '.pdf': `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2z"/></svg>`,
-  '.json': `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4a2 2 0 0 0-2 2v3a2 3 0 0 1-2 3 2 3 0 0 1 2 3v3a2 2 0 0 0 2 2"/><path d="M17 4a2 2 0 0 1 2 2v3a2 3 0 0 0 2 3 2 3 0 0 0-2 3v3a2 2 0 0 1-2 2"/></svg>`,
-  '.yaml': `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>`,
-  '.yml': `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>`,
+  '.md': `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>`,
+  '.png': `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M20 15l-5-5L5 20"/></svg>`,
+  '.jpg': `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M20 15l-5-5L5 20"/></svg>`,
+  '.jpeg': `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M20 15l-5-5L5 20"/></svg>`,
+  '.gif': `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M20 15l-5-5L5 20"/></svg>`,
+  '.svg': `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M20 15l-5-5L5 20"/></svg>`,
+  '.pdf': `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>`,
+  '.json': `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4a2 2 0 0 0-2 2v3a2 3 0 0 1-2 3 2 3 0 0 1 2 3v3a2 2 0 0 0 2 2"/><path d="M17 4a2 2 0 0 1 2 2v3a2 3 0 0 0 2 3 2 3 0 0 0-2 3v3a2 2 0 0 1-2 2"/></svg>`,
+  '.yaml': `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>`,
+  '.yml': `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>`,
 };
 
-const FOLDER_ICON_OPEN = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h4l3 3h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/><line x1="3" y1="10" x2="21" y2="10"/></svg>`;
-const FOLDER_ICON_CLOSED = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h4l3 3h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/></svg>`;
-const DEFAULT_FILE_ICON = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2z"/></svg>`;
-const CHEVRON_RIGHT = `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>`;
-const CHEVRON_DOWN = `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>`;
+const FOLDER_ICON_OPEN = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/><line x1="2" y1="10" x2="22" y2="10"/></svg>`;
+const FOLDER_ICON_CLOSED = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>`;
+const DEFAULT_FILE_ICON = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>`;
+const CHEVRON_RIGHT = `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>`;
+const CHEVRON_DOWN = `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>`;
 
 /**
  * Helper to safely insert trusted SVG icon markup.
@@ -94,11 +94,7 @@ function renderTree(entries, container, depth) {
 function renderDirectory(entry, parentEl, depth) {
   const item = document.createElement('div');
   item.className = 'tree-item tree-item-folder';
-  item.style.paddingLeft = `${12 + depth * 16}px`;
-
-  // Chevron toggle
-  const chevron = document.createElement('span');
-  chevron.className = 'tree-folder-toggle';
+  item.style.paddingLeft = `${16 + depth * 16}px`;
 
   // Folder icon
   const icon = document.createElement('span');
@@ -109,7 +105,6 @@ function renderDirectory(entry, parentEl, depth) {
   label.className = 'tree-item-label';
   label.textContent = entry.name;
 
-  item.appendChild(chevron);
   item.appendChild(icon);
   item.appendChild(label);
   parentEl.appendChild(item);
@@ -121,7 +116,6 @@ function renderDirectory(entry, parentEl, depth) {
 
   // Expand/collapse state
   let expanded = expandedPaths.has(entry.path);
-  setSvgIcon(chevron, expanded ? CHEVRON_DOWN : CHEVRON_RIGHT);
   setSvgIcon(icon, expanded ? FOLDER_ICON_OPEN : FOLDER_ICON_CLOSED);
 
   if (!expanded) {
@@ -137,7 +131,6 @@ function renderDirectory(entry, parentEl, depth) {
 
     if (expanded) {
       expandedPaths.add(entry.path);
-      setSvgIcon(chevron, CHEVRON_DOWN);
       setSvgIcon(icon, FOLDER_ICON_OPEN);
       childrenContainer.classList.remove('hidden');
 
@@ -147,7 +140,6 @@ function renderDirectory(entry, parentEl, depth) {
       }
     } else {
       expandedPaths.delete(entry.path);
-      setSvgIcon(chevron, CHEVRON_RIGHT);
       setSvgIcon(icon, FOLDER_ICON_CLOSED);
       childrenContainer.classList.add('hidden');
     }
@@ -165,17 +157,12 @@ function renderDirectory(entry, parentEl, depth) {
 function renderFile(entry, parentEl, depth) {
   const item = document.createElement('div');
   item.className = 'tree-item tree-item-file';
-  item.style.paddingLeft = `${12 + depth * 16}px`;
+  item.style.paddingLeft = `${16 + depth * 16}px`;
   item.dataset.path = entry.path;
 
   if (entry.path === activeFilePath) {
     item.classList.add('active');
   }
-
-  // Empty chevron spacer
-  const chevronSpacer = document.createElement('span');
-  chevronSpacer.className = 'tree-folder-toggle';
-  chevronSpacer.style.visibility = 'hidden';
 
   // File icon
   const icon = document.createElement('span');
@@ -187,7 +174,6 @@ function renderFile(entry, parentEl, depth) {
   label.className = 'tree-item-label';
   label.textContent = entry.name;
 
-  item.appendChild(chevronSpacer);
   item.appendChild(icon);
   item.appendChild(label);
   parentEl.appendChild(item);
@@ -233,8 +219,9 @@ function renderFullTree() {
   const header = document.createElement('div');
   header.className = 'tree-header';
 
-  const brand = document.createElement('div');
+  const brand = document.createElement('button');
   brand.className = 'tree-brand';
+  brand.title = 'Back to vault chooser';
 
   const kanji = document.createElement('span');
   kanji.className = 'tree-brand-kanji';
@@ -242,10 +229,14 @@ function renderFullTree() {
 
   const name = document.createElement('span');
   name.className = 'tree-brand-name';
-  name.textContent = 'SatoriLite';
+  name.textContent = 'Satori';
 
   brand.appendChild(kanji);
   brand.appendChild(name);
+
+  brand.addEventListener('click', () => {
+    window.dispatchEvent(new CustomEvent('satorilite:go-home'));
+  });
 
   const openBtn = document.createElement('button');
   openBtn.className = 'tree-open-btn';

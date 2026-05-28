@@ -4,16 +4,16 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="Offline-first markdown editor">
-  <meta name="theme-color" content="#cba6f7">
-  <title>SatoriLite</title>
+  <meta name="theme-color" content="#c66b6b">
+  <title>Satori</title>
   <link rel="icon" type="image/x-icon" href="/favicon.ico">
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png">
   <link rel="apple-touch-icon" sizes="192x192" href="/icon-192.png">
   <link rel="manifest" href="/manifest.json">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Literata:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/satori.css">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Inter:wght@400;500;600&family=Literata:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/satori.css?v=99">
   <script type="importmap">
   {
     "imports": {
@@ -28,9 +28,10 @@
   <!-- Vault Chooser — full screen, shown on launch -->
   <div class="vault-chooser" id="vault-chooser">
     <canvas class="vault-hero-canvas" id="vault-hero-canvas"></canvas>
+    <div class="vault-hero-kanji">悟</div>
     <div class="vault-chooser-card">
-      <h1 class="vault-chooser-title"><span class="vault-chooser-kanji">悟</span> SatoriLite</h1>
-      <p class="vault-chooser-subtitle">Open a folder to get started</p>
+      <h1 class="vault-chooser-title"><span class="vault-chooser-kanji">悟</span> Satori</h1>
+      <p class="vault-chooser-subtitle">Your thoughts, illuminated.</p>
 
       <!-- Vault list -->
       <div class="vault-list" id="vault-list"></div>
@@ -49,9 +50,11 @@
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/></svg>
         </button>
         <span class="toolbar-divider"></span>
-        <button class="view-toggle-btn active" data-mode="split" title="Split view (Cmd+Shift+S)">Split</button>
-        <button class="view-toggle-btn" data-mode="editor" title="Editor only (Cmd+Shift+E)">Editor</button>
-        <button class="view-toggle-btn" data-mode="preview" title="Preview only (Cmd+Shift+P)">Preview</button>
+        <button class="toolbar-btn" id="btn-view-cycle" title="Cycle view mode (Cmd+Shift+V)">
+          <svg id="icon-view-split" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="12" y1="3" x2="12" y2="21"/></svg>
+          <svg id="icon-view-editor" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><rect x="3" y="3" width="18" height="18" rx="2"/><polyline points="8 8 12 12 8 16"/></svg>
+          <svg id="icon-view-preview" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="8" y1="8" x2="16" y2="8"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="16" x2="13" y2="16"/></svg>
+        </button>
         <span class="toolbar-spacer"></span>
         <button class="toolbar-btn" id="btn-find" title="Find (Cmd+F)">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -67,8 +70,8 @@
         </button>
       </div>
       <div class="tab-bar" id="tab-bar"></div>
-      <div class="breadcrumb-bar" id="breadcrumb-bar"></div>
-      <div class="editor-content mode-split">
+      <div class="breadcrumb-bar hidden" id="breadcrumb-bar"></div>
+      <div class="editor-content mode-preview">
         <div class="editor-pane" id="editor-pane"></div>
         <div class="preview-pane" id="preview-pane"></div>
       </div>
@@ -97,18 +100,12 @@
   </div>
 
   <script>
-    // Register Service Worker
+    // Unregister any existing Service Worker
     if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js').then(
-          (registration) => {
-            console.log('ServiceWorker registered:', registration.scope);
-          },
-          (err) => {
-            console.log('ServiceWorker registration failed:', err);
-          }
-        );
+      navigator.serviceWorker.getRegistrations().then(regs => {
+        regs.forEach(r => r.unregister());
       });
+      caches.keys().then(k => k.forEach(c => caches.delete(c)));
     }
   </script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js" integrity="sha384-qOkzR5Ke/XkQxuGVJ9hpFEpDlcoLtWwVYhnJf06cLIZa2vaIptSqaubivErzmD5O" crossorigin="anonymous"></script>

@@ -1,6 +1,6 @@
 {
-  "name": "SatoriLite",
-  "short_name": "SatoriLite",
+  "name": "Satori",
+  "short_name": "Satori",
   "description": "Offline-first markdown editor",
   "start_url": "/",
   "display": "standalone",

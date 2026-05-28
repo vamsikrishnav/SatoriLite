@@ -180,12 +180,24 @@
   }
   animate();
 
-  // Stop when vault chooser is hidden
+  // Pause/resume when vault chooser is hidden/shown
   const observer = new MutationObserver(() => {
     const chooser = document.getElementById('vault-chooser');
-    if (chooser && chooser.classList.contains('hidden')) {
+    if (!chooser) return;
+    if (chooser.classList.contains('hidden')) {
       running = false;
-      renderer.dispose();
+    } else {
+      if (!running) {
+        running = true;
+        const w = canvas.clientWidth;
+        const h = canvas.clientHeight;
+        if (w && h) {
+          camera.aspect = w / h;
+          camera.updateProjectionMatrix();
+          renderer.setSize(w, h);
+        }
+        animate();
+      }
     }
   });
   const chooser = document.getElementById('vault-chooser');

@@ -42,29 +42,29 @@ function getVar(name) {
 function buildHighlighter(tags) {
   const colorMap = Object.create(null);
   const specs = [
-    { tag: tags.keyword, color: getVar('--syn-keyword') },
-    { tag: tags.operator, color: getVar('--syn-operator') },
-    { tag: tags.string, color: getVar('--syn-string') },
-    { tag: tags.special(tags.string), color: getVar('--syn-string') },
-    { tag: tags.comment, color: getVar('--syn-comment') },
-    { tag: tags.lineComment, color: getVar('--syn-comment') },
-    { tag: tags.number, color: getVar('--syn-number') },
-    { tag: tags.integer, color: getVar('--syn-number') },
-    { tag: tags.float, color: getVar('--syn-number') },
-    { tag: tags.bool, color: getVar('--syn-number') },
-    { tag: tags.null, color: getVar('--syn-number') },
-    { tag: tags.atom, color: getVar('--syn-number') },
-    { tag: tags.variableName, color: getVar('--text-normal') },
-    { tag: tags.function(tags.variableName), color: getVar('--syn-function') },
-    { tag: tags.typeName, color: getVar('--syn-type') },
-    { tag: tags.meta, color: getVar('--syn-meta') },
-    { tag: tags.definition(tags.propertyName), color: getVar('--syn-meta') },
-    { tag: tags.propertyName, color: getVar('--syn-property') },
-    { tag: tags.attributeValue, color: getVar('--syn-string') },
-    { tag: tags.labelName, color: getVar('--syn-type') },
-    { tag: tags.className, color: getVar('--syn-type') },
-    { tag: tags.tagName, color: getVar('--syn-tag') },
-    { tag: tags.attributeName, color: getVar('--syn-attribute') },
+    { tag: tags.keyword, color: '#9b7bc6' },
+    { tag: tags.operator, color: '#6bb8b8' },
+    { tag: tags.string, color: '#7bc67b' },
+    { tag: tags.special(tags.string), color: '#7bc67b' },
+    { tag: tags.comment, color: '#7a6b72' },
+    { tag: tags.lineComment, color: '#7a6b72' },
+    { tag: tags.number, color: '#d4937e' },
+    { tag: tags.integer, color: '#d4937e' },
+    { tag: tags.float, color: '#d4937e' },
+    { tag: tags.bool, color: '#d4937e' },
+    { tag: tags.null, color: '#d4937e' },
+    { tag: tags.atom, color: '#d4937e' },
+    { tag: tags.variableName, color: '#f0e6dc' },
+    { tag: tags.function(tags.variableName), color: '#6b9fd4' },
+    { tag: tags.typeName, color: '#d4a85c' },
+    { tag: tags.meta, color: '#c66b6b' },
+    { tag: tags.definition(tags.propertyName), color: '#c66b6b' },
+    { tag: tags.propertyName, color: '#6b9fd4' },
+    { tag: tags.attributeValue, color: '#7bc67b' },
+    { tag: tags.labelName, color: '#d4a85c' },
+    { tag: tags.className, color: '#d4a85c' },
+    { tag: tags.tagName, color: '#9b7bc6' },
+    { tag: tags.attributeName, color: '#6b9fd4' },
   ];
 
   for (const { tag, color } of specs) {
@@ -188,7 +188,8 @@ function createRendererOverrides() {
 
       const toolbar = `<div class="code-toolbar">${langTag}${copyBtn}</div>`;
       const codeClass = langStr ? ` class="language-${escapeHtml(langStr)}"` : '';
-      const highlighted = highlightCode(text, langStr);
+      const compactText = text.replace(/\n{2,}/g, '\n');
+      const highlighted = highlightCode(compactText, langStr);
 
       return `<pre>${toolbar}<code${codeClass}>${highlighted}</code></pre>`;
     },

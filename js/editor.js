@@ -29,16 +29,16 @@ export function getCurrentFilePath() {
  */
 function createTheme(EditorView) {
   return EditorView.theme({
-    '&': { backgroundColor: 'var(--bg-primary)', color: 'var(--text-normal)', height: '100%' },
-    '.cm-content': { caretColor: 'var(--accent)', fontFamily: "'Liga SFMono Nerd Font', 'SF Mono', 'Fira Code', monospace", fontSize: '13px', lineHeight: '1.6', letterSpacing: '-0.2px', padding: '20px 0' },
-    '.cm-cursor, .cm-dropCursor': { borderLeftColor: 'var(--accent)' },
-    '&.cm-focused .cm-selectionBackground, .cm-selectionBackground': { backgroundColor: 'var(--bg-surface1)' },
-    '.cm-gutters': { backgroundColor: 'var(--bg-secondary)', color: 'var(--text-faint)', borderRight: '1px solid var(--bg-surface0)', fontFamily: "'Liga SFMono Nerd Font', 'SF Mono', 'Fira Code', monospace", fontSize: '12px' },
-    '.cm-activeLineGutter': { backgroundColor: 'var(--bg-surface0)' },
-    '.cm-activeLine': { backgroundColor: 'color-mix(in srgb, var(--bg-surface0) 30%, transparent)' },
-    '.cm-foldPlaceholder': { backgroundColor: 'var(--bg-surface0)', color: 'var(--text-subtext0, var(--text-muted))', border: 'none' },
-    '.cm-tooltip': { backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--bg-surface0)', color: 'var(--text-normal)' },
-    '.cm-tooltip-autocomplete': { '& > ul > li[aria-selected]': { backgroundColor: 'var(--bg-surface1)' } },
+    '&': { backgroundColor: '#3d3552', color: '#b8a8a0', height: '100%' },
+    '.cm-content': { caretColor: '#c66b6b', fontFamily: "'JetBrains Mono', 'Fira Code', Consolas, monospace", fontSize: '13px', lineHeight: '1.8', padding: '20px 24px' },
+    '.cm-cursor, .cm-dropCursor': { borderLeftColor: '#c66b6b' },
+    '&.cm-focused .cm-selectionBackground, .cm-selectionBackground': { backgroundColor: 'rgba(139, 115, 144, 0.25)' },
+    '.cm-gutters': { backgroundColor: 'transparent', color: '#7a6b72', borderRight: 'none', fontFamily: "'JetBrains Mono', 'Fira Code', Consolas, monospace", fontSize: '12px' },
+    '.cm-activeLineGutter': { backgroundColor: 'transparent' },
+    '.cm-activeLine': { backgroundColor: 'rgba(255, 255, 255, 0.02)' },
+    '.cm-foldPlaceholder': { backgroundColor: 'rgba(74, 64, 96, 0.5)', color: '#b8a8a0', border: 'none' },
+    '.cm-tooltip': { backgroundColor: 'rgba(61, 53, 82, 0.95)', border: '1px solid rgba(255, 255, 255, 0.08)', color: '#f0e6dc', backdropFilter: 'blur(12px)' },
+    '.cm-tooltip-autocomplete': { '& > ul > li[aria-selected]': { backgroundColor: 'rgba(198, 107, 107, 0.15)' } },
   }, { dark: true });
 }
 
@@ -175,6 +175,8 @@ export async function initEditor() {
   // Listen for file-open events from tree
   window.addEventListener('satorilite:file-open', (e) => {
     const { path } = e.detail;
+    const emptyState = document.getElementById('editor-empty-state');
+    if (emptyState) emptyState.classList.add('hidden');
     openFile(path);
   });
 
@@ -189,7 +191,7 @@ export async function initEditor() {
       changes: { from: 0, to: editorView.state.doc.length, insert: content }
     });
     currentFilePath = '__readonly__:' + path;
-    window.dispatchEvent(new CustomEvent('satorilite:file-opened', { detail: { path, content } }));
+    window.dispatchEvent(new CustomEvent('satorilite:file-loaded', { detail: { path, content } }));
   });
 }
 

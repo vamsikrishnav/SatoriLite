@@ -75,6 +75,13 @@ async function init() {
   // Wire open-folder event from sidebar
   window.addEventListener('satorilite:open-folder', handleOpenFolder);
 
+  // Wire go-home event from brand click
+  window.addEventListener('satorilite:go-home', () => {
+    appLayoutEl.classList.add('hidden');
+    vaultChooserEl.classList.remove('hidden');
+    renderRecentVaults();
+  });
+
   // Wire vault switch from sidebar list
   window.addEventListener('satorilite:switch-vault', async (e) => {
     const vault = e.detail;

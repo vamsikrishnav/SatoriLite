@@ -15,6 +15,7 @@ let availableModels = [];
  */
 let chatInitialized = false;
 
+
 export function initChat() {
   if (chatInitialized) return;
   chatInitialized = true;
@@ -109,6 +110,15 @@ export function initChat() {
 
   // Load models
   loadModels();
+
+  // Open all links in chat in a new browser tab
+  messagesArea.addEventListener('click', (e) => {
+    const link = e.target.closest('a');
+    if (link && link.href) {
+      e.preventDefault();
+      window.open(link.href, '_blank', 'noopener');
+    }
+  });
 
   // Event handlers
   closeBtn.addEventListener('click', () => toggleChat(false));
@@ -312,7 +322,7 @@ function renderMessages() {
     el.className = 'chat-message ' + (msg.role === 'user' ? 'chat-message-user' : 'chat-message-ai');
     el.dataset.index = i;
     if (msg.role === 'assistant') {
-      el.innerHTML = marked.parse(msg.content || '', { breaks: true });
+      el.innerHTML = marked.parse(msg.content || '');
     } else {
       el.textContent = msg.content;
     }
@@ -337,7 +347,7 @@ function updateLastAIMessage(content, sources, elapsed) {
 
   const textEl = document.createElement('div');
   textEl.className = 'chat-message-text';
-  textEl.innerHTML = marked.parse(content || '', { breaks: true });
+  textEl.innerHTML = marked.parse(content || '');
   last.appendChild(textEl);
 
   if (sources && sources.length > 0) {
@@ -418,7 +428,9 @@ function removeLoading(el) {
 function scrollToBottom() {
   const container = document.getElementById('chat-messages');
   if (container) {
-    container.scrollTop = container.scrollHeight;
+    requestAnimationFrame(() => {
+      container.scrollTop = container.scrollHeight;
+    });
   }
 }
 
@@ -443,18 +455,14 @@ export function sendToChat(text) {
 function updateProgress(tool, input) {
   const container = document.getElementById('chat-messages');
   if (!container) return;
-  let progressEl = container.querySelector('.chat-progress');
+  const aiMessages = container.querySelectorAll('.chat-message-ai');
+  const lastAi = aiMessages[aiMessages.length - 1];
+  if (!lastAi) return;
+  let progressEl = lastAi.querySelector('.chat-progress');
   if (!progressEl) {
     progressEl = document.createElement('div');
     progressEl.className = 'chat-progress';
-    // Insert before the last AI message (which is the empty one waiting for response)
-    const aiMessages = container.querySelectorAll('.chat-message-ai');
-    const lastAi = aiMessages[aiMessages.length - 1];
-    if (lastAi) {
-      container.insertBefore(progressEl, lastAi);
-    } else {
-      container.appendChild(progressEl);
-    }
+    lastAi.appendChild(progressEl);
   }
 
   // Mark previous lines: checkmark → slide left + blur → collapse
@@ -505,7 +513,7 @@ function streamToLastAIMessage(content) {
   if (!_streamRenderTimer) {
     _streamRenderTimer = setTimeout(() => {
       _streamRenderTimer = null;
-      last.innerHTML = marked.parse(_streamLastContent || '', { breaks: true });
+      last.innerHTML = marked.parse(_streamLastContent || '');
       scrollToBottom();
     }, 150);
   }
@@ -517,8 +525,8 @@ function streamToLastAIMessage(content) {
 function removeProgress() {
   const container = document.getElementById('chat-messages');
   if (!container) return;
-  const el = container.querySelector('.chat-progress');
-  if (el) el.remove();
+  const els = container.querySelectorAll('.chat-progress');
+  els.forEach(el => el.remove());
 }
 
 /**
