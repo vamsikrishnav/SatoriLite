@@ -2319,3 +2319,222 @@ code, pre, .mono {
   background: rgba(0, 229, 255, 0.1);
   border-left: 2px solid #00e5ff;
 }
+
+/* ---------------------------------------------------------------------------
+   Claude Code Chat Panel
+   --------------------------------------------------------------------------- */
+
+.cc-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.cc-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.cc-title {
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--text-normal);
+}
+
+.cc-header-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.cc-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cc-message {
+  max-width: 100%;
+  word-wrap: break-word;
+}
+
+.cc-message-user {
+  background: rgba(198, 107, 107, 0.1);
+  border: 1px solid rgba(198, 107, 107, 0.2);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 13px;
+  color: var(--text-normal);
+  align-self: flex-end;
+  max-width: 85%;
+}
+
+.cc-message-assistant {
+  font-size: 13px;
+  color: var(--text-normal);
+  line-height: 1.6;
+}
+
+.cc-message-assistant .cc-message-text {
+  padding: 0;
+}
+
+.cc-message-assistant .cc-message-text p {
+  margin: 0 0 8px 0;
+}
+
+.cc-message-assistant .cc-message-text p:last-child {
+  margin-bottom: 0;
+}
+
+.cc-message-assistant .cc-message-text pre {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px 12px;
+  overflow-x: auto;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.cc-message-assistant .cc-message-text code {
+  background: var(--bg-surface0);
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-size: 12px;
+}
+
+.cc-message-assistant .cc-message-text pre code {
+  background: none;
+  padding: 0;
+}
+
+.cc-input-area {
+  display: flex;
+  gap: 8px;
+  padding: 10px 12px;
+  border-top: 1px solid var(--border);
+  align-items: flex-end;
+}
+
+.cc-textarea {
+  flex: 1;
+  resize: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-tertiary);
+  color: var(--text-normal);
+  padding: 8px 10px;
+  font-size: 13px;
+  font-family: inherit;
+  line-height: 1.4;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.cc-textarea:focus {
+  border-color: var(--border-focus);
+}
+
+.cc-textarea::placeholder {
+  color: var(--text-faint);
+}
+
+.cc-send-btn {
+  flex-shrink: 0;
+  padding: 6px 12px;
+  font-size: 12px;
+}
+
+.cc-stop-btn {
+  background: var(--color-red) !important;
+  border-color: var(--color-red) !important;
+}
+
+/* Tool activity blocks */
+.cc-tool-activity {
+  margin: 6px 0;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+  font-size: 12px;
+}
+
+.cc-tool-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: var(--bg-tertiary);
+  cursor: pointer;
+  user-select: none;
+}
+
+.cc-tool-header:hover {
+  background: var(--bg-surface0);
+}
+
+.cc-tool-chevron {
+  font-size: 9px;
+  color: var(--text-faint);
+  width: 10px;
+}
+
+.cc-tool-label {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.cc-tool-summary {
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cc-tool-details {
+  padding: 8px 10px;
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: pre-wrap;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.cc-tool-details.hidden {
+  display: none;
+}
+
+.cc-elapsed {
+  font-size: 11px;
+  color: var(--text-faint);
+  margin-top: 4px;
+}
+
+.cc-error {
+  color: var(--color-red);
+  font-size: 12px;
+  padding: 6px 10px;
+  background: rgba(212, 107, 107, 0.1);
+  border-radius: 4px;
+  margin-top: 6px;
+}
+
+.cc-clear-btn,
+.cc-close-btn {
+  font-size: 12px;
+  padding: 2px 8px;
+}
+
+#btn-claude-code.disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
