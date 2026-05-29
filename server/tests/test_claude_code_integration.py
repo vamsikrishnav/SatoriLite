@@ -33,7 +33,7 @@ def test_chat_streams_text_events(client):
                 proc.wait = MagicMock()
                 mock_popen.return_value = proc
 
-                resp = client.post("/api/claude-code/chat", json={
+                resp = client.post("/api/cc/chat", json={
                     "message": "hello",
                     "session_id": "test-123",
                 })
@@ -52,30 +52,30 @@ def test_chat_streams_text_events(client):
 
 def test_chat_returns_503_when_unavailable(client):
     with patch("server.main.check_claude_available", return_value={"available": False, "detail": "not installed"}):
-        resp = client.post("/api/claude-code/chat", json={"message": "hi"})
+        resp = client.post("/api/cc/chat", json={"message": "hi"})
     assert resp.status_code == 503
 
 
 def test_chat_returns_400_without_message(client):
     with patch("server.main.check_claude_available", return_value={"available": True, "version": "2.1.0"}):
-        resp = client.post("/api/claude-code/chat", json={"message": ""})
+        resp = client.post("/api/cc/chat", json={"message": ""})
     assert resp.status_code == 400
 
 
 def test_cancel_no_active_session(client):
-    resp = client.post("/api/claude-code/cancel", json={"session_id": "nonexistent"})
+    resp = client.post("/api/cc/cancel", json={"session_id": "nonexistent"})
     assert resp.status_code == 200
     assert resp.json()["status"] == "no_active_session"
 
 
 def test_cancel_requires_session_id(client):
-    resp = client.post("/api/claude-code/cancel", json={"session_id": ""})
+    resp = client.post("/api/cc/cancel", json={"session_id": ""})
     assert resp.status_code == 400
 
 
 def test_status_endpoint(client):
     with patch("server.main.check_claude_available", return_value={"available": True, "version": "2.1.156"}):
-        resp = client.get("/api/claude-code/status")
+        resp = client.get("/api/cc/status")
     assert resp.status_code == 200
     data = resp.json()
     assert data["available"] is True

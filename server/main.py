@@ -706,13 +706,13 @@ async def websocket_endpoint(websocket: WebSocket):
 # ---------------------------------------------------------------------------
 
 
-@app.get("/api/claude-code/status")
+@app.get("/api/cc/status")
 async def claude_code_status():
     """Check if Claude Code CLI is available."""
     return check_claude_available()
 
 
-@app.post("/api/claude-code/chat")
+@app.post("/api/cc/chat")
 async def claude_code_chat(request: Request):
     """Stream a Claude Code response via SSE."""
     status = check_claude_available()
@@ -750,7 +750,7 @@ async def claude_code_chat(request: Request):
     )
 
 
-@app.post("/api/claude-code/cancel")
+@app.post("/api/cc/cancel")
 async def claude_code_cancel(request: Request):
     """Cancel an active Claude Code session."""
     body = await request.json()

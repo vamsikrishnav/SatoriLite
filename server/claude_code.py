@@ -135,7 +135,6 @@ async def stream_claude_response(
         "--output-format", "stream-json",
         "--verbose",
         "--session-id", session_id,
-        "--continue",
         "--system-prompt", system_prompt,
         message,
     ]

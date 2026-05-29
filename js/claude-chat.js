@@ -105,7 +105,7 @@ export function initClaudeChat() {
 
 async function checkAvailability() {
   try {
-    const resp = await fetch('/api/claude-code/status');
+    const resp = await fetch('/api/cc/status');
     const data = await resp.json();
     if (!data.available) {
       const btn = document.getElementById('btn-claude-code');
@@ -197,7 +197,7 @@ async function sendMessage() {
 
   try {
     abortController = new AbortController();
-    const response = await fetch('/api/claude-code/chat', {
+    const response = await fetch('/api/cc/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
@@ -274,7 +274,7 @@ async function cancelStream() {
     abortController.abort();
   }
   if (sessionId) {
-    fetch('/api/claude-code/cancel', {
+    fetch('/api/cc/cancel', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ session_id: sessionId }),
