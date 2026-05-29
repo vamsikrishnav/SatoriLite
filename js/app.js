@@ -22,6 +22,7 @@ import { initWebSocket, disconnectWebSocket } from './ws.js';
 import { initBreadcrumb } from './breadcrumb.js';
 import { initSwitcher } from './switcher.js';
 import { initShortcutsPanel } from './shortcuts-panel.js';
+import { initClaudeChat, toggleClaudeChat } from './claude-chat.js';
 
 // Module state
 let vaultTree = null;
@@ -318,6 +319,9 @@ async function openVault(name, dirHandle) {
     initBacklinks();
     initChat();
     initAIActions();
+    initClaudeChat();
+    const btnCC = document.getElementById('btn-claude-code');
+    if (btnCC) btnCC.addEventListener('click', () => toggleClaudeChat());
     initWebSocket();
   } catch (err) {
     console.error('Failed to open vault:', err);
