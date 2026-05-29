@@ -4,8 +4,10 @@ import asyncio
 import concurrent.futures
 import json
 import logging
+import os
 import re
 import subprocess
+import uuid
 from pathlib import Path
 
 import boto3
@@ -14,11 +16,11 @@ from fastapi.responses import StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
 from server.config import AWS_REGION, BEDROCK_MODEL_ID, BEDROCK_ROUTER_MODEL_ID, VAULT_PATH, INDEX_DIR, index_dir_for_vault
-from server.registry import get_last_active_vault, set_last_active_vault
+from server.registry import get_last_active_vault, set_last_active_vault, list_vaults, add_vault, remove_vault as registry_remove_vault
 from server.fts import build_fts_index, get_fts_index, reset_fts_index, index_file as fts_index_file, remove_from_fts, search_fts
 from server.watcher import VaultWatcher
 from server.tools import execute_tool, TOOL_DEFINITIONS
-from server.registry import list_vaults, add_vault, remove_vault as registry_remove_vault
+from server.claude_code import check_claude_available, build_system_prompt, stream_claude_response, cancel_session
 
 logger = logging.getLogger("satorilite")
 logging.basicConfig(
@@ -28,6 +30,7 @@ logging.basicConfig(
 )
 
 app = FastAPI(title="SatoriLite")
+_PROJECT_ROOT = str(Path(__file__).resolve().parent.parent)
 
 event_queue: asyncio.Queue = asyncio.Queue(maxsize=1000)
 ws_clients: set[WebSocket] = set()
@@ -49,8 +52,13 @@ def _get_index_dir() -> str:
 
 
 async def _activate_vault(vault_path: str):
-    """Switch to a vault: load FTS, start watcher."""
+    """Switch to a vault: load FTS, start watcher for all vaults."""
     global active_vault_path, active_index_dir, vault_watcher
+
+    resolved = str(Path(vault_path).resolve())
+    if resolved == _PROJECT_ROOT:
+        logger.warning("Refusing to activate project root as vault: %s", vault_path)
+        return
 
     active_vault_path = vault_path
     active_index_dir = index_dir_for_vault(vault_path)
@@ -65,16 +73,19 @@ async def _activate_vault(vault_path: str):
     if not Path(vault_path).is_dir():
         return
 
-    # Load or build FTS index
+    # Load or build FTS index for active vault
     reset_fts_index("default")
     fts_idx = get_fts_index("default", index_dir=active_index_dir)
     if not fts_idx.load() or fts_idx.doc_count() == 0:
         await asyncio.to_thread(build_fts_index, "default", vault_path, active_index_dir)
 
-    # Start watcher
+    # Start watcher on ALL registered vaults
     loop = asyncio.get_running_loop()
     vault_watcher = VaultWatcher(event_queue, loop)
-    vault_watcher.watch(vault_path)
+    for v in list_vaults():
+        vp = v["path"]
+        if Path(vp).is_dir():
+            vault_watcher.watch(vp)
 
 
 @app.on_event("startup")
@@ -82,7 +93,7 @@ async def startup():
     global active_vault_path
     Path(active_index_dir).mkdir(parents=True, exist_ok=True)
 
-    if Path(active_vault_path).is_dir() and active_vault_path != ".":
+    if Path(active_vault_path).is_dir() and active_vault_path not in (".", _PROJECT_ROOT):
         await _activate_vault(active_vault_path)
     else:
         last_active = get_last_active_vault()
@@ -104,8 +115,28 @@ async def shutdown():
         vault_watcher.stop_all()
 
 
+def _count_md_files(vault_path: str) -> tuple[int, float]:
+    """Count indexable .md files and find the newest mtime."""
+    vault = Path(vault_path)
+    skip_dirs = {"node_modules", "__pycache__", ".git", "vendor", "dist"}
+    count = 0
+    newest_mtime = 0.0
+    for md_file in vault.rglob("*.md"):
+        parts = md_file.relative_to(vault).parts
+        if any(p.startswith(".") or p in skip_dirs for p in parts):
+            continue
+        count += 1
+        try:
+            mt = md_file.stat().st_mtime
+            if mt > newest_mtime:
+                newest_mtime = mt
+        except OSError:
+            pass
+    return count, newest_mtime
+
+
 def _ensure_all_fts():
-    """Load or build FTS indices for all registered vaults."""
+    """Load or build FTS indices for all registered vaults. Rebuilds if stale."""
     vaults = list_vaults()
     for vault in vaults:
         vault_path = vault["path"]
@@ -115,7 +146,25 @@ def _ensure_all_fts():
         idx_dir = index_dir_for_vault(vault_path)
         Path(idx_dir).mkdir(parents=True, exist_ok=True)
         fts_idx = get_fts_index(vault_name, index_dir=idx_dir)
-        if not fts_idx.load() or fts_idx.doc_count() == 0:
+        loaded = fts_idx.load()
+
+        if loaded and fts_idx.doc_count() > 0:
+            actual_count, newest_mtime = _count_md_files(vault_path)
+            index_file = Path(idx_dir) / "fts_index.json"
+            index_mtime = index_file.stat().st_mtime if index_file.exists() else 0.0
+            stale_count = actual_count != fts_idx.doc_count()
+            stale_content = newest_mtime > index_mtime
+
+            if stale_count or stale_content:
+                reason = "file count changed" if stale_count else "content modified since last index"
+                logger.info("FTS stale for %s (%s, indexed=%d, on_disk=%d), rebuilding",
+                            vault_name, reason, fts_idx.doc_count(), actual_count)
+                reset_fts_index(vault_name)
+                rebuilt_count = build_fts_index(vault_name, vault_path, idx_dir)
+                logger.info("FTS rebuilt for %s (%d docs)", vault_name, rebuilt_count)
+            else:
+                logger.info("FTS up-to-date for %s (%d docs)", vault_name, fts_idx.doc_count())
+        else:
             build_fts_index(vault_name, vault_path, idx_dir)
             logger.info("FTS built for vault %s (%d docs)", vault_name, fts_idx.doc_count())
 
@@ -157,8 +206,17 @@ async def _process_events():
             logger.warning("Error processing event: %s", e)
 
 
+def _resolve_vault_for_path(file_path: str) -> tuple[str, str] | None:
+    """Return (vault_name, vault_path) for a file, or None if not in any vault."""
+    for v in list_vaults():
+        vp = v["path"]
+        if file_path.startswith(vp + "/") or file_path.startswith(vp + os.sep):
+            return (v.get("name", Path(vp).name), vp)
+    return None
+
+
 async def _flush_pending():
-    """Wait for debounce window, then update FTS index."""
+    """Wait for debounce window, then update FTS index for affected vaults."""
     await asyncio.sleep(DEBOUNCE_SECONDS)
 
     paths = dict(_pending_paths)
@@ -169,13 +227,21 @@ async def _flush_pending():
 
     for path, event_type in paths.items():
         try:
+            resolved = _resolve_vault_for_path(path)
+            if not resolved:
+                continue
+            vault_name, vault_path = resolved
+            idx_dir = index_dir_for_vault(vault_path)
+
             if event_type in ("created", "modified"):
                 content = Path(path).read_text(encoding="utf-8")
-                fts_index_file("default", path, content)
-                logger.info("FTS updated: %s", path)
+                get_fts_index(vault_name, index_dir=idx_dir)
+                fts_index_file(vault_name, path, content)
+                logger.info("FTS updated [%s]: %s", vault_name, path)
             elif event_type == "deleted":
-                remove_from_fts("default", path)
-                logger.info("FTS removed: %s", path)
+                get_fts_index(vault_name, index_dir=idx_dir)
+                remove_from_fts(vault_name, path)
+                logger.info("FTS removed [%s]: %s", vault_name, path)
         except (OSError, UnicodeDecodeError) as e:
             logger.warning("Failed to process %s: %s", path, e)
 
@@ -604,6 +670,8 @@ async def switch_vault(request: Request):
     abs_path = str(Path(path).expanduser().resolve())
     if not Path(abs_path).is_dir():
         return {"status": "no_match", "detail": f"Not a valid directory: {abs_path}"}
+    if abs_path == _PROJECT_ROOT:
+        return {"status": "no_match", "detail": "Cannot use the application directory as a vault"}
 
     await _activate_vault(abs_path)
     add_vault("", abs_path)
@@ -634,9 +702,68 @@ async def websocket_endpoint(websocket: WebSocket):
 
 
 # ---------------------------------------------------------------------------
-# Static file serving
+# Claude Code integration
 # ---------------------------------------------------------------------------
 
-_PROJECT_ROOT = str(Path(__file__).resolve().parent.parent)
+
+@app.get("/api/claude-code/status")
+async def claude_code_status():
+    """Check if Claude Code CLI is available."""
+    return check_claude_available()
+
+
+@app.post("/api/claude-code/chat")
+async def claude_code_chat(request: Request):
+    """Stream a Claude Code response via SSE."""
+    status = check_claude_available()
+    if not status["available"]:
+        raise HTTPException(status_code=503, detail="Claude Code CLI not installed")
+
+    body = await request.json()
+    message = body.get("message", "")
+    session_id = body.get("session_id", "") or str(uuid.uuid4())
+    file_context = body.get("file_context", "")
+    file_path = body.get("file_path", "")
+
+    if not message:
+        raise HTTPException(status_code=400, detail="'message' is required")
+
+    vault_path = _get_vault_path()
+    all_vaults = list_vaults()
+
+    system_prompt = build_system_prompt(
+        active_vault=vault_path,
+        all_vaults=all_vaults,
+        file_path=file_path,
+        file_context=file_context,
+    )
+
+    async def event_generator():
+        yield f"data: {json.dumps({'type': 'session', 'session_id': session_id})}\n\n"
+        async for event in stream_claude_response(message, session_id, vault_path, system_prompt):
+            yield f"data: {json.dumps(event)}\n\n"
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "Connection": "keep-alive"},
+    )
+
+
+@app.post("/api/claude-code/cancel")
+async def claude_code_cancel(request: Request):
+    """Cancel an active Claude Code session."""
+    body = await request.json()
+    session_id = body.get("session_id", "")
+    if not session_id:
+        raise HTTPException(status_code=400, detail="'session_id' is required")
+
+    killed = await cancel_session(session_id)
+    return {"status": "cancelled" if killed else "no_active_session", "session_id": session_id}
+
+
+# ---------------------------------------------------------------------------
+# Static file serving
+# ---------------------------------------------------------------------------
 
 app.mount("/", StaticFiles(directory=_PROJECT_ROOT, html=True), name="static")
