@@ -1514,6 +1514,15 @@ code, pre, .mono {
   user-select: none;
 }
 
+.code-copy-btn,
+.code-toolbar {
+  display: none;
+}
+
+.preview-pane .code-toolbar {
+  display: flex;
+}
+
 .preview-pane .code-copy-btn {
   display: inline-flex;
   align-items: center;
