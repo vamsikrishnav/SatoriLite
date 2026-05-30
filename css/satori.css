@@ -2375,43 +2375,9 @@ code, pre, .mono {
 }
 
 .cc-message-assistant {
+  max-width: 100%;
   font-size: 13px;
-  color: var(--text-normal);
-  line-height: 1.6;
-}
-
-.cc-message-assistant .cc-message-text {
-  padding: 0;
-}
-
-.cc-message-assistant .cc-message-text p {
-  margin: 0 0 8px 0;
-}
-
-.cc-message-assistant .cc-message-text p:last-child {
-  margin-bottom: 0;
-}
-
-.cc-message-assistant .cc-message-text pre {
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 10px 12px;
-  overflow-x: auto;
-  font-size: 12px;
   line-height: 1.5;
-}
-
-.cc-message-assistant .cc-message-text code {
-  background: var(--bg-surface0);
-  padding: 1px 4px;
-  border-radius: 3px;
-  font-size: 12px;
-}
-
-.cc-message-assistant .cc-message-text pre code {
-  background: none;
-  padding: 0;
 }
 
 .cc-input-area {
@@ -2458,19 +2424,19 @@ code, pre, .mono {
 
 /* Tool activity blocks */
 .cc-tool-activity {
-  margin: 6px 0;
-  border: 1px solid var(--border);
-  border-radius: 6px;
+  margin: 4px 0;
+  border-left: 2px solid var(--accent);
+  border-radius: 0 4px 4px 0;
   overflow: hidden;
   font-size: 12px;
+  background: var(--bg-tertiary);
 }
 
 .cc-tool-header {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 10px;
-  background: var(--bg-tertiary);
+  padding: 5px 10px;
   cursor: pointer;
   user-select: none;
 }
@@ -2488,6 +2454,8 @@ code, pre, .mono {
 .cc-tool-label {
   color: var(--accent);
   font-weight: 600;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
 }
 
 .cc-tool-summary {
@@ -2519,6 +2487,50 @@ code, pre, .mono {
   margin-top: 4px;
 }
 
+.cc-live-timer {
+  font-size: 11px;
+  color: var(--accent);
+  font-family: 'JetBrains Mono', monospace;
+  opacity: 0.7;
+}
+
+.cc-sources {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
+.cc-sources-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-faint);
+}
+
+.cc-source-chip {
+  font-size: 11px;
+  padding: 2px 8px;
+  background: rgba(107, 184, 184, 0.1);
+  border: 1px solid rgba(107, 184, 184, 0.2);
+  border-radius: 12px;
+  color: var(--accent);
+  font-family: 'JetBrains Mono', monospace;
+  cursor: default;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cc-source-chip:hover {
+  background: rgba(107, 184, 184, 0.2);
+}
+
 .cc-error {
   color: var(--color-red);
   font-size: 12px;
@@ -2526,6 +2538,35 @@ code, pre, .mono {
   background: rgba(212, 107, 107, 0.1);
   border-radius: 4px;
   margin-top: 6px;
+}
+
+.cc-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  padding: 8px 0;
+  animation: cc-pulse 1.5s ease-in-out infinite;
+}
+
+.cc-status::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  animation: cc-dot-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes cc-pulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+@keyframes cc-dot-pulse {
+  0%, 100% { transform: scale(1); opacity: 0.6; }
+  50% { transform: scale(1.3); opacity: 1; }
 }
 
 .cc-clear-btn,

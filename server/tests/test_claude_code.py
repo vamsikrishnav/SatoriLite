@@ -52,7 +52,7 @@ def test_build_system_prompt_with_file_context():
     assert "/home/user/work" in prompt
     assert "projects/todo.md" in prompt
     assert "Buy milk" in prompt
-    assert "Search here first" in prompt
+    assert "knowledge assistant" in prompt
 
 
 def test_build_system_prompt_without_file_context():

@@ -57,7 +57,7 @@ export function initClaudeChat() {
   const textarea = document.createElement('textarea');
   textarea.className = 'cc-textarea';
   textarea.id = 'cc-textarea';
-  textarea.placeholder = 'Ask Claude Code…';
+  textarea.placeholder = 'Ask anything… (/deep or /cc)';
   textarea.rows = 1;
 
   const sendBtn = document.createElement('button');
@@ -194,6 +194,13 @@ async function sendMessage() {
 
   const aiEl = appendMessage('assistant', '');
   const startTime = Date.now();
+  const timerEl = document.createElement('div');
+  timerEl.className = 'cc-live-timer';
+  timerEl.textContent = '0.0s';
+  aiEl.appendChild(timerEl);
+  const timerInterval = setInterval(() => {
+    timerEl.textContent = ((Date.now() - startTime) / 1000).toFixed(1) + 's';
+  }, 100);
 
   try {
     abortController = new AbortController();
@@ -233,19 +240,31 @@ async function sendMessage() {
             case 'session':
               sessionId = event.session_id;
               break;
+            case 'status':
+              updateStatus(aiEl, event.content);
+              scrollToBottom();
+              break;
             case 'text':
+              clearStatus(aiEl);
               fullText += event.content;
               renderStreamingText(aiEl, fullText);
               scrollToBottom();
               break;
             case 'tool_start':
+              clearStatus(aiEl);
               appendToolActivity(aiEl, event.tool, event.input);
               scrollToBottom();
               break;
+            case 'sources':
+              appendSources(aiEl, event.files);
+              scrollToBottom();
+              break;
             case 'error':
+              clearStatus(aiEl);
               appendError(aiEl, event.content);
               break;
             case 'done': {
+              clearStatus(aiEl);
               const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
               finalizeMessage(aiEl, fullText, elapsed);
               break;
@@ -261,6 +280,8 @@ async function sendMessage() {
       appendError(aiEl, err.message);
     }
   } finally {
+    clearInterval(timerInterval);
+    timerEl.remove();
     isStreaming = false;
     abortController = null;
     updateSendButton();
@@ -319,7 +340,7 @@ function renderStreamingText(el, text) {
     let textEl = el.querySelector('.cc-message-text');
     if (!textEl) {
       textEl = document.createElement('div');
-      textEl.className = 'cc-message-text';
+      textEl.className = 'cc-message-text chat-message-ai';
       el.appendChild(textEl);
     }
     textEl.innerHTML = marked.parse(text);
@@ -333,7 +354,7 @@ function finalizeMessage(el, text, elapsed) {
   let textEl = el.querySelector('.cc-message-text');
   if (!textEl) {
     textEl = document.createElement('div');
-    textEl.className = 'cc-message-text';
+    textEl.className = 'cc-message-text chat-message-ai';
     el.appendChild(textEl);
   }
   textEl.innerHTML = marked.parse(text || '');
@@ -344,6 +365,23 @@ function finalizeMessage(el, text, elapsed) {
     timerEl.textContent = `${elapsed}s`;
     el.appendChild(timerEl);
   }
+}
+
+
+function updateStatus(el, text) {
+  let statusEl = el.querySelector('.cc-status');
+  if (!statusEl) {
+    statusEl = document.createElement('div');
+    statusEl.className = 'cc-status';
+    el.appendChild(statusEl);
+  }
+  statusEl.textContent = text;
+}
+
+
+function clearStatus(el) {
+  const statusEl = el.querySelector('.cc-status');
+  if (statusEl) statusEl.remove();
 }
 
 
@@ -389,8 +427,15 @@ function formatToolSummary(tool, input) {
   if (tool === 'Read' && input.file_path) {
     return input.file_path.split('/').pop();
   }
+  if (tool === 'Grep' && input.pattern) {
+    const path = input.path ? input.path.split('/').pop() : '';
+    return `/${input.pattern}/ ${path}`;
+  }
+  if (tool === 'Glob' && input.pattern) {
+    return input.pattern;
+  }
   if (tool === 'Bash' && input.command) {
-    return input.command.length > 40 ? input.command.slice(0, 40) + '…' : input.command;
+    return input.command.length > 50 ? input.command.slice(0, 50) + '…' : input.command;
   }
   if (tool === 'Edit' && input.file_path) {
     return input.file_path.split('/').pop();
@@ -401,6 +446,32 @@ function formatToolSummary(tool, input) {
   if (input.query) return input.query;
   if (input.file_path) return input.file_path.split('/').pop();
   return '';
+}
+
+
+function appendSources(el, files) {
+  const container = document.createElement('div');
+  container.className = 'cc-sources';
+
+  const label = document.createElement('span');
+  label.className = 'cc-sources-label';
+  label.textContent = 'Sources';
+
+  container.appendChild(label);
+
+  for (const fpath of files) {
+    const chip = document.createElement('span');
+    chip.className = 'cc-source-chip';
+    // Show relative path from vault root (trim up to /projects/X/)
+    const parts = fpath.split('/');
+    const projIdx = parts.indexOf('projects');
+    const display = projIdx >= 0 ? parts.slice(projIdx + 2).join('/') : parts.slice(-2).join('/');
+    chip.textContent = display;
+    chip.title = fpath;
+    container.appendChild(chip);
+  }
+
+  el.appendChild(container);
 }
 
 

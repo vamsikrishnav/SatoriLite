@@ -20,7 +20,7 @@ from server.registry import get_last_active_vault, set_last_active_vault, list_v
 from server.fts import build_fts_index, get_fts_index, reset_fts_index, index_file as fts_index_file, remove_from_fts, search_fts
 from server.watcher import VaultWatcher
 from server.tools import execute_tool, TOOL_DEFINITIONS
-from server.claude_code import check_claude_available, build_system_prompt, stream_claude_response, cancel_session
+from server.claude_code import check_claude_available, build_system_prompt, stream_claude_response, stream_bedrock_response, stream_agentic_response, cancel_session, clear_session
 
 logger = logging.getLogger("satorilite")
 logging.basicConfig(
@@ -88,6 +88,23 @@ async def _activate_vault(vault_path: str):
             vault_watcher.watch(vp)
 
 
+async def _warmup_claude_code():
+    """Warm up the Bedrock client connection."""
+    try:
+        from server.claude_code import _get_bedrock_client
+        from server.config import BEDROCK_ROUTER_MODEL_ID
+        client = _get_bedrock_client()
+        await asyncio.to_thread(
+            client.converse,
+            modelId=BEDROCK_ROUTER_MODEL_ID,
+            messages=[{"role": "user", "content": [{"text": "hi"}]}],
+            system=[{"text": "say ok"}],
+        )
+        logger.info("Bedrock client warmed up")
+    except Exception as e:
+        logger.debug(f"Bedrock warmup skipped: {e}")
+
+
 @app.on_event("startup")
 async def startup():
     global active_vault_path
@@ -107,6 +124,7 @@ async def startup():
     # Pre-load FTS indices for all registered vaults
     await asyncio.to_thread(_ensure_all_fts)
     asyncio.create_task(_process_events())
+    asyncio.create_task(_warmup_claude_code())
 
 
 @app.on_event("shutdown")
@@ -615,6 +633,8 @@ async def get_vaults():
     return vaults
 
 
+
+
 @app.post("/api/vaults/add")
 async def add_vault_endpoint(request: Request):
     """Register a new vault path."""
@@ -712,6 +732,18 @@ async def claude_code_status():
     return check_claude_available()
 
 
+@app.get("/api/cc/debug-fts")
+async def claude_code_debug_fts():
+    """Debug: show FTS index state for all vaults."""
+    from server.fts import get_fts_index, _vault_indices
+    from server.config import index_dir_for_vault
+    result = {"cached_keys": list(_vault_indices.keys())}
+    for v in list_vaults():
+        idx = get_fts_index(v["name"], index_dir=index_dir_for_vault(v["path"]))
+        result[v["name"]] = {"docs": idx.doc_count(), "path": v["path"]}
+    return result
+
+
 @app.post("/api/cc/chat")
 async def claude_code_chat(request: Request):
     """Stream a Claude Code response via SSE."""
@@ -731,17 +763,64 @@ async def claude_code_chat(request: Request):
     vault_path = _get_vault_path()
     all_vaults = list_vaults()
 
-    system_prompt = build_system_prompt(
-        active_vault=vault_path,
-        all_vaults=all_vaults,
-        file_path=file_path,
-        file_context=file_context,
-    )
-
     async def event_generator():
         yield f"data: {json.dumps({'type': 'session', 'session_id': session_id})}\n\n"
-        async for event in stream_claude_response(message, session_id, vault_path, system_prompt):
-            yield f"data: {json.dumps(event)}\n\n"
+
+        from server.claude_code import pre_search, _extract_search_terms
+
+        force_cc = message.startswith("/cc ")
+        deep_mode = message.startswith("/deep ")
+        if force_cc:
+            actual_message = message[4:]
+        elif deep_mode:
+            actual_message = message[6:]
+        else:
+            actual_message = message
+
+        vault_context = ""
+        matched_files = []
+
+        if force_cc:
+            yield f"data: {json.dumps({'type': 'status', 'content': 'Agent mode...'})}\n\n"
+        else:
+            yield f"data: {json.dumps({'type': 'status', 'content': 'Deep searching vaults...' if deep_mode else 'Searching vaults...'})}\n\n"
+            ordered_vaults = sorted(all_vaults, key=lambda v: v["path"] != vault_path)
+            search_terms = _extract_search_terms(actual_message)
+            vault_context, matched_files = pre_search(actual_message, ordered_vaults, return_files=True, deep=deep_mode)
+
+        if matched_files:
+            yield f"data: {json.dumps({'type': 'tool_start', 'tool': 'Search', 'input': {'query': search_terms, 'results': [f.split('/')[-1] for f in matched_files]}})}\n\n"
+
+        for fpath in matched_files:
+            yield f"data: {json.dumps({'type': 'tool_start', 'tool': 'Read', 'input': {'file_path': fpath}})}\n\n"
+
+        system_prompt = build_system_prompt(
+            active_vault=vault_path,
+            all_vaults=all_vaults,
+            file_path=file_path,
+            file_context=file_context,
+            query=actual_message,
+            vault_context=vault_context,
+        )
+
+        all_vault_paths = [v["path"] for v in all_vaults]
+
+        if force_cc or deep_mode:
+            yield f"data: {json.dumps({'type': 'status', 'content': 'Agent searching vaults...'})}\n\n"
+            async for event in stream_agentic_response(actual_message, system_prompt, all_vault_paths, vault_context=vault_context):
+                yield f"data: {json.dumps(event)}\n\n"
+                if event.get("type") == "done" and matched_files:
+                    yield f"data: {json.dumps({'type': 'sources', 'files': matched_files})}\n\n"
+        elif vault_context:
+            yield f"data: {json.dumps({'type': 'status', 'content': 'Generating answer...'})}\n\n"
+            async for event in stream_bedrock_response(actual_message, system_prompt):
+                yield f"data: {json.dumps(event)}\n\n"
+            if matched_files:
+                yield f"data: {json.dumps({'type': 'sources', 'files': matched_files})}\n\n"
+        else:
+            yield f"data: {json.dumps({'type': 'status', 'content': 'Agent searching vaults...'})}\n\n"
+            async for event in stream_agentic_response(actual_message, system_prompt, all_vault_paths):
+                yield f"data: {json.dumps(event)}\n\n"
 
     return StreamingResponse(
         event_generator(),
